@@ -49,11 +49,9 @@ hs_paths = {
 
 
 class StreamsMap(leaflet_map.Map):
-    def __init__(self):
+    def __init__(self, **kwargs):
 
-        # initialize HydroShare credentials
-        print("Please Enter Your HydroShare Credentials")
-        self.hs = hsclient.S3HydroShare()
+        self.hs = hsclient.S3HydroShare(**kwargs)
 
         # initialize the parent class
         super().__init__()

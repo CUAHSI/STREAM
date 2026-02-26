@@ -91,6 +91,9 @@ class S3HydroShare(HydroShare):
         self.s3_key = None
         self.s3_secret = None
         
+        self.username = kwargs.pop('username', None)
+        self.password = kwargs.pop('password', None)
+        
         # setup logging to control output verbosity
         log_level = kwargs.pop('log_level', 'ERROR')
         self.__setup_logging(log_level)
@@ -138,16 +141,19 @@ class S3HydroShare(HydroShare):
         Prompts for username/password. 
         Useful for avoiding saving your HydroShare credentials to a notebook
         """
-        username = input("Username: ").strip()
-        password = getpass.getpass("Password for {}: ".format(username))
-        self._hs_session.set_auth((username, password))
+        if (self.username is None) or (self.password is None): 
+            print("Please Enter Your HydroShare Credentials")
+            self.username = input("Username: ").strip()
+            self.password = getpass.getpass("Password for {}: ".format(username))
+        
+        self._hs_session.set_auth((self.username, self.password))
         self.my_user_info()  # validate credentials
 
         # get S3 credentials
         self.logger.info('Getting S3 credentials')
         try:
             response = requests.post(f"https://{self._hs_session.host}/hsapi/user/service/accounts/s3/",
-                                     auth=(username, password))
+                                     auth=(self.username, self.password))
     
             if not response.ok:
                 raise Exception('Error requesting S3 access key and secret')    

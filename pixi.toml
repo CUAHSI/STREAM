@@ -20,6 +20,9 @@ pygments = ">=2.19.2,<3"
 pyarrow = ">=23.0.1,<24"
 matplotlib = ">=3.10.8,<4"
 seaborn = ">=0.13.2,<0.14"
+ipyleaflet = ">=0.20.0,<0.21"
+ipywidgets = ">=8.1.8,<9"
+sidecar = ">=0.8.0,<0.9"
 
 [pypi-dependencies]
 hsclient = ">=1.1.6, <2"
