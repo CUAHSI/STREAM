@@ -1,0 +1,17 @@
+services:
+  api:
+    image: api
+    ports:
+      - 8002:8000
+      - 5680:5678  # 5678:5678 was used
+      - 8182:8181
+    restart: unless-stopped
+    volumes:
+      - ./api/streamviz:/streamviz
+    build:
+      context: ./api/
+      dockerfile: Dockerfile
+    working_dir: /streamviz
+    command: python -m debugpy --listen 0.0.0.0:5678 -m uvicorn --host 0.0.0.0 --port 8000 --proxy-headers main:app --reload
+    env_file:
+      - .env
