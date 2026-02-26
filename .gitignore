@@ -212,4 +212,6 @@ __marimo__/
 
 # Data
 data/
-data/*
+data/*# pixi environments
+.pixi/*
+!.pixi/config.toml
