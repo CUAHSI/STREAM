@@ -18,8 +18,8 @@ warnings.simplefilter(action="ignore", category=pandas.errors.DtypeWarning)
 
 # import utils.S3hsclient as hsclient
 
-input_data_dir = Path("data")
-output_data_dir = Path("processed-data")
+input_data_dir = Path("data/STREAM-Mississippi")
+output_data_dir = Path("processed-data/MRB")
 
 # make sure output directory exists
 output_data_dir.mkdir(exist_ok=True)
@@ -146,9 +146,8 @@ def create_hive_parquet(
 # metadata and also a shapefile for the gauge locations.
 # the shapefile will be used in the dashboard to display
 # the gauge locations on a map.
-
 print("Processing metadata...", end="", flush=True)
-df = pandas.read_csv(f"{input_data_dir}/01_metadata.csv")
+df = pandas.read_csv(f"{input_data_dir}/01_metadata/metadata.csv")
 outfile = output_data_dir / "metadata.parquet"
 df.to_parquet(outfile, index=False)
 
@@ -165,14 +164,21 @@ gdf = gdf.rename(
         "drainagearea_sqkm": "drain_sqkm",
     }
 )
+if "WQ_parameters" in gdf.columns:
+    gdf.drop(columns=["WQ_parameters"], inplace=True)
+
 gdf.to_file(f"{output_data_dir}/gauges.shp")
+gdf.to_parquet(f"{output_data_dir}/gauges.parquet")
 print("done")
 
 # process land use land cover data and dynamic_antropogenic data.
 # These both have a date columnm named "year"
 print("Processing land use land cover data...", end="", flush=True)
 create_single_parquet(
-    input_data_dir / "07_lulc", output_data_dir / "lulc.parquet", date_cols=["year"]
+    input_data_dir / "07_dynamic_lulc",
+    output_data_dir / "lulc.parquet",
+    # date_cols=["year"],
+    date_cols=["DateTime"],
 )
 print("done")
 
@@ -217,12 +223,12 @@ create_single_parquet(
 )
 print("done")
 
-# process meteorology data. This has a date column named "time" and we will sort
-print("Processing meteorology data...", end="", flush=True)
-create_hive_parquet(
-    input_data_dir / "05_dynamic_historical_meteorology",
-    output_data_dir / "dynamic_historical_meteorology",
-    date_cols=["time"],
-    sort_by="time",
-)
-print("done")
+## process meteorology data. This has a date column named "time" and we will sort
+# print("Processing meteorology data...", end="", flush=True)
+# create_hive_parquet(
+#    input_data_dir / "05_dynamic_historical_meteorology",
+#    output_data_dir / "dynamic_historical_meteorology",
+#    date_cols=["time"],
+#    sort_by="time",
+# )
+# print("done")

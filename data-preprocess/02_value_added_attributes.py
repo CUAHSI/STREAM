@@ -107,10 +107,11 @@ def get_geoconnex_metadata(
 
 
 if __name__ == "__main__":
-    parquet_dir = Path("processed-data")
+    parquet_dir = Path("processed-data/MRB")
 
     metadata_df = pd.read_parquet(parquet_dir / "metadata.parquet")
-    vaa = metadata_df[["STREAM_ID", "State", "drainagearea_sqkm"]]
+    # vaa = metadata_df[["STREAM_ID", "State", "drainagearea_sqkm"]]
+    vaa = metadata_df[["STREAM_ID", "state_name", "drainagearea_sqkm"]]
 
     # add HUCs
     attribs, errors = get_geoconnex_metadata(metadata_df, "hu12", "huc12")
