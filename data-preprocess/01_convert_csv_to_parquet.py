@@ -3,7 +3,6 @@
 
 from typing import Union
 
-# import s3fs
 import time
 import pandas
 import geopandas
@@ -11,7 +10,6 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.compute as pc
-import pyarrow.parquet as pq
 
 import warnings
 
@@ -21,7 +19,7 @@ warnings.simplefilter(action="ignore", category=pandas.errors.DtypeWarning)
 # import utils.S3hsclient as hsclient
 
 input_data_dir = Path("data")
-output_data_dir = Path("processed_data")
+output_data_dir = Path("processed-data")
 
 # make sure output directory exists
 output_data_dir.mkdir(exist_ok=True)
@@ -88,20 +86,17 @@ def create_hive_parquet(
 
     """
 
-    print("\n")
-    #    if not Path("hive_temp.parquet").exists():
-    print("   loading data csv data into Pandas...", end="", flush=True)
+    print("    Loading data csv data into Pandas...", end="", flush=True)
     st = time.time()
     dfs = []
     for f in input_data_dir.glob("*.csv"):
         df_temp = pandas.read_csv(f, parse_dates=date_cols)
         df_temp["STREAM_ID"] = f.stem
+        if sort_by is not None:
+            df_temp.sort_values(by=sort_by, inplace=True)
         dfs.append(df_temp)
 
     df = pandas.concat(dfs)
-
-    if sort_by is not None:
-        df.sort_values(by=sort_by, inplace=True)
 
     #    df.to_parquet("hive_temp.parquet")
     print(f"done [elapsed time: {time.time() - st:.2f} seconds]")
@@ -114,15 +109,10 @@ def create_hive_parquet(
     print(f"done [elapsed time: {time.time() - st:.2f} seconds]")
 
     table = table.set_column(
-        table.schema.get_field_index("gauge"),
-        "gauge",
-        pc.cast(table["gauge"], pa.large_string()),
+        table.schema.get_field_index("STREAM_ID"),
+        "STREAM_ID",
+        pc.cast(table["STREAM_ID"], pa.large_string()),
     )
-
-    print("    Sorting values...", end="", flush=True)
-    st = time.time()
-    table = table.sort_by([("gauge", "ascending"), ("time", "ascending")])
-    print(f"done [elapsed time: {time.time() - st:.2f} seconds]")
 
     print("    Writing PyArrow table to Parquet files...", end="", flush=True)
     st = time.time()
@@ -135,7 +125,7 @@ def create_hive_parquet(
                 ("STREAM_ID", pa.large_string()),
             ]
         ),
-        flavor="hive",  # This creates gauge=X/ paths
+        flavor="hive",  # This creates STREAM_ID=X/ paths
     )
 
     ds.write_dataset(
