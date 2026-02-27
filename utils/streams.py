@@ -50,6 +50,7 @@ hs_paths = {
     "Historical Meteorology": "tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/dynamic_historical_meteorology",
     'HUC6': 'tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/huc6_dissolved.parquet',
     'Metadata': 'tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/metadata.parquet',
+    'vaa': 'tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/vaa.parquet',
 }
 
 
@@ -347,6 +348,12 @@ class StreamsMap(leaflet_map.Map):
                 hs_paths["Metadata"],
                 filesystem=self.hs.get_s3_filesystem(),
             )
+        vaa = pandas.read_parquet(
+                hs_paths["vaa"],
+                filesystem=self.hs.get_s3_filesystem(),
+            )
+        dat = dat.merge(vaa, on='STREAM_ID', how='inner')
+        
 
         # Create points for all gauges in the huc
         filtered = dat[dat['huc06'] == huc_id]
