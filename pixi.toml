@@ -23,6 +23,7 @@ seaborn = ">=0.13.2,<0.14"
 ipyleaflet = ">=0.20.0,<0.21"
 ipywidgets = ">=8.1.8,<9"
 sidecar = ">=0.8.0,<0.9"
+dask = ">=2026.1.2,<2027"
 
 [pypi-dependencies]
 hsclient = ">=1.1.6, <2"
