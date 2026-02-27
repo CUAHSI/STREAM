@@ -144,7 +144,7 @@ class S3HydroShare(HydroShare):
         if (self.username is None) or (self.password is None): 
             print("Please Enter Your HydroShare Credentials")
             self.username = input("Username: ").strip()
-            self.password = getpass.getpass("Password for {}: ".format(username))
+            self.password = getpass.getpass("Password for {}: ".format(self.username))
         
         self._hs_session.set_auth((self.username, self.password))
         self.my_user_info()  # validate credentials

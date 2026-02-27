@@ -11,13 +11,16 @@ from datetime import datetime
 from pathlib import Path
 
 import geopandas as gpd
+import pandas
 import ipyleaflet
-from ipyleaflet import WidgetControl
+from ipyleaflet import WidgetControl, WMSLayer
 from ipywidgets import Layout, HTML
 from IPython.display import display
 import ipywidgets as widgets
 import pyarrow.parquet as pq
 import threading
+import requests
+from shapely.geometry import shape, Point
 
 from utils import S3hsclient as hsclient
 from utils import leaflet_map
@@ -45,6 +48,8 @@ hs_paths = {
     "Streamflow": "tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/streamflow.parquet",
     "water_quality": "tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/water_quality.parquet",
     "Historical Meteorology": "tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/dynamic_historical_meteorology",
+    'HUC6': 'tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/huc6_dissolved.parquet',
+    'Metadata': 'tonycastronova/248ec0f13d6c4580b2faa66425cb58c3/data/contents/metadata.parquet',
 }
 
 
@@ -61,6 +66,29 @@ class StreamsMap(leaflet_map.Map):
         # track if the user click a gauge during the current event
         self.feature_selected = False
 
+
+        # HUC 6 Boundaries - Add a WMS layer
+        self.huc6 = gpd.read_parquet(
+            hs_paths["HUC6"],
+            filesystem=self.hs.get_s3_filesystem(),
+        )
+        huc6 = ipyleaflet.GeoData(
+            geo_dataframe=self.huc6,
+            style={
+                "color": "black",
+                "fillColor": "#3366cc",
+                "opacity": 0.5,
+                "weight": 1,
+                "fillOpacity": 0,
+            },
+            name="HUC6",
+        )
+        huc6.on_click(self.on_huc6_click)
+        self.huc6_selected = None
+        self.gauges_selected = None
+        self.map.add(huc6)
+
+        
         # STREAMS Gauges
         self.gauges = gpd.read_parquet(
             hs_paths["gauges"],
@@ -87,10 +115,34 @@ class StreamsMap(leaflet_map.Map):
             },
             name="Gauges",
         )
-
         geo_data.on_click(self.on_gauge_click)
 
         self.map.add(geo_data)
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
         self.styled_container = widgets.HTML(
             "<style>.floating-widget { z-index: 9999 !important; position: relative; }</style>"
@@ -244,15 +296,90 @@ class StreamsMap(leaflet_map.Map):
             return
 
         if not self.feature_selected:
-            self.gauge_label.value = "No Reach Selected"
+            self.gauge_label.value = "No Gauge Selected"
             self.submit.disabled = True
             
         # reset the feature_selected flag for the next event
         self.feature_selected = False
 
+    
+        
     def _on_selection_mode_change(self, change):
-        self.gauge_label.value = "No Reach Selected"
+        self.gauge_label.value = "No Gauge Selected"
         self.submit.disabled = True
+
+    def on_huc6_click(self, feature, **kwargs):
+
+        if self.huc6_selected is not None:
+            self.map.remove_layer(self.huc6_selected)
+            self.huc6_selected = None
+
+            self.map.remove_layer(self.gauges_selected)
+            self.gauges_selected = None
+
+        # Convert GeoJSON geometry to Shapely
+        geom = shape(feature['geometry'])
+        
+        # Create GeoDataFrame
+        gdf = gpd.GeoDataFrame(
+            [feature['properties']],  
+            geometry=[geom],
+        )
+        
+        # Add a GeoData layer with highlight
+        highlight_layer = ipyleaflet.GeoData(
+            geo_dataframe=gdf,
+            style={
+                "color": "blue",
+                "fillColor": "#ADD8E6",
+                "weight": 2,
+                "fillOpacity": 0.5,
+            },
+            name="Selected HUC6"
+        )
+
+        # Add to the map and save feature for removal later
+        self.huc6_selected = highlight_layer
+        self.map.add_layer(highlight_layer)
+
+        huc_id = feature['properties']['HUC_6']
+        dat = pandas.read_parquet(
+                hs_paths["Metadata"],
+                filesystem=self.hs.get_s3_filesystem(),
+            )
+
+        # Create points for all gauges in the huc
+        filtered = dat[dat['huc06'] == huc_id]
+        
+        filtered['geometry'] = filtered.apply(lambda row: Point(row['longitude_wgs84'], row['latitude_wgs84']), axis=1)
+        gdf_points = gpd.GeoDataFrame(filtered, geometry='geometry')
+        
+        # Create a GeoData layer with red points
+        points_layer = ipyleaflet.GeoData(
+            geo_dataframe=gdf_points,
+            style={
+                "color": "red",       # border color
+                "radius": 8,
+                "fillColor": "red",   # fill color
+                "opacity": 1,
+                "weight": 1.5,
+                "dashArray": "2",
+                "fillOpacity": 0.25,
+            },
+            point_style={
+                "radius": 5,
+                "color": "red",
+                "fillOpacity": 0.8,
+                "fillColor": "blue",
+                "weight": 3,
+            },
+            name="Selected Points"
+        )
+        
+        # Add to your map
+        self.gauges_selected = points_layer
+        self.map.add_layer(points_layer)
+    
 
     def on_gauge_click(self, feature, **kwargs):
 
