@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-from typing import Union
+from typing import Union, Tuple
 
 import time
 import pandas
@@ -66,6 +66,7 @@ def create_hive_parquet(
     input_data_dir: Path,
     output_dir: Path,
     date_cols: list = [],
+    partition_by: list = [Tuple],
     sort_by: Union[str, None] = None,
 ):
     """
@@ -86,7 +87,7 @@ def create_hive_parquet(
 
     """
 
-    print("    Loading data csv data into Pandas...", end="", flush=True)
+    print("\n    Loading data csv data into Pandas...", end="", flush=True)
     st = time.time()
     dfs = []
     for f in input_data_dir.glob("*.csv"):
@@ -121,9 +122,10 @@ def create_hive_parquet(
 
     partitioning = ds.partitioning(
         pa.schema(
-            [
-                ("STREAM_ID", pa.large_string()),
-            ]
+            partition_by
+            # [
+            #     ("STREAM_ID", pa.large_string()),
+            # ]
         ),
         flavor="hive",  # This creates STREAM_ID=X/ paths
     )
@@ -194,24 +196,28 @@ print("done")
 # process water quality data. This has a date column named
 # "DateTime" and we will sort the data by this column before saving.
 print("Processing water quality data...", end="", flush=True)
-create_single_parquet(
+create_hive_parquet(
     input_data_dir / "02_waterquality_timeseries",
-    output_data_dir / "water_quality.parquet",
+    output_data_dir / "water_quality",
     date_cols=["DateTime"],
+    partition_by=[
+        ("STREAM_ID", pa.large_string()),
+    ],
     sort_by="DateTime",
 )
-print("done")
 
 
 # process streamflow discharge data. This has a date column named "DateTime" and we will sort
 print("Processing streamflow discharge data...", end="", flush=True)
-create_single_parquet(
+create_hive_parquet(
     input_data_dir / "09_streamflow_discharge",
-    output_data_dir / "streamflow.parquet",
+    output_data_dir / "streamflow",
     date_cols=["DateTime"],
+    partition_by=[
+        ("STREAM_ID", pa.large_string()),
+    ],
     sort_by="DateTime",
 )
-print("done")
 
 # process grab sample data. This has a date column named "DateTime" and we will sort
 print("Processing grab sample data...", end="", flush=True)
@@ -226,9 +232,12 @@ print("done")
 ## process meteorology data. This has a date column named "time" and we will sort
 # print("Processing meteorology data...", end="", flush=True)
 # create_hive_parquet(
-#    input_data_dir / "05_dynamic_historical_meteorology",
-#    output_data_dir / "dynamic_historical_meteorology",
-#    date_cols=["time"],
-#    sort_by="time",
+#   input_data_dir / "05_dynamic_historical_meteorology",
+#   output_data_dir / "dynamic_historical_meteorology",
+#   date_cols=["time"],
+#    partition_by=[
+#        ("STREAM_ID", pa.large_string()),
+#    ],
+#   sort_by="time",
 # )
 # print("done")
