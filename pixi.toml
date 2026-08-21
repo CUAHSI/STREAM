@@ -25,6 +25,7 @@ ipywidgets = ">=8.1.8,<9"
 sidecar = ">=0.8.0,<0.9"
 dask = ">=2026.1.2,<2027"
 boto3 = ">=1.42.55,<2"
+pdbpp = ">=0.12.1,<0.13"
 
 [pypi-dependencies]
 hsclient = ">=1.1.6, <2"
