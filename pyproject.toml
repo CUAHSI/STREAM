@@ -1,0 +1,44 @@
+[project]
+name = "stream-utils"
+version = "0.1.0"
+requires-python = ">=3.14,<3.15"
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["utils"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+name = "STREAM"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tool.pixi.tasks]
+start = "jupyter lab"
+
+[tool.pixi.dependencies]
+python = ">=3.14.7,<3.15"
+s3fs = ">=2026.6.0,<2027"
+xarray = ">=2026.7.0,<2027"
+tqdm = ">=4.70.0,<5"
+geopandas = ">=1.1.4,<2"
+jupyterlab = ">=4.6.3,<5"
+pixi-kernel = ">=0.7.1,<0.8"
+setuptools = ">=84.0.0,<85"
+pygments = ">=2.21.0,<3"
+pyarrow = ">=25.0.0,<26"
+matplotlib = ">=3.11.1,<4"
+seaborn = ">=0.13.2,<0.14"
+ipyleaflet = ">=0.20.0,<0.21"
+ipywidgets = ">=8.1.9,<9"
+sidecar = ">=0.8.1,<0.9"
+dask = ">=2026.7.1,<2027"
+boto3 = ">=1.43.56,<2"
+pdbpp = ">=0.12.1,<0.13"
+
+[tool.pixi.pypi-dependencies]
+hsclient = ">=1.1.7, <2"
+stream-utils = { path = ".", editable = true }
