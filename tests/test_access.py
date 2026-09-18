@@ -137,6 +137,48 @@ class StreamAccessTests(unittest.TestCase):
                 end="2020-01-01",
             )
 
+    @patch("utils.access.ds.dataset")
+    def test_reads_selected_static_attributes(self, dataset_mock):
+        expected = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1"],
+                "stream_order": [3],
+            }
+        )
+        dataset_mock.return_value.schema.names = ["STREAM_ID", "stream_order"]
+        table = Mock()
+        table.to_pandas.return_value = expected
+        dataset_mock.return_value.to_table.return_value = table
+
+        result = self.access.read_static_attributes(
+            site_ids="STREAM-gauge-1",
+            columns="stream_order",
+        )
+
+        pd.testing.assert_frame_equal(result, expected)
+        dataset_mock.assert_called_once_with(
+            dataset_path("static_catchment_characteristics"),
+            format="parquet",
+            filesystem=self.filesystem,
+        )
+        call = dataset_mock.return_value.to_table.call_args
+        self.assertEqual(call.kwargs["columns"], ["STREAM_ID", "stream_order"])
+        self.assertIsNotNone(call.kwargs["filter"])
+
+    @patch("utils.access.ds.dataset")
+    def test_rejects_unknown_static_attribute(self, dataset_mock):
+        dataset_mock.return_value.schema.names = ["STREAM_ID", "stream_order"]
+
+        with self.assertRaisesRegex(ValueError, "Unknown static attribute"):
+            self.access.read_static_attributes(
+                site_ids="STREAM-gauge-1",
+                columns="not_a_column",
+            )
+
+    def test_static_attributes_require_at_least_one_site(self):
+        with self.assertRaisesRegex(ValueError, "at least one site"):
+            self.access.read_static_attributes([], "stream_order")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -71,6 +71,16 @@ class StreamClientTests(unittest.TestCase):
             quality="approved",
         )
 
+    def test_delegates_static_attribute_read(self):
+        self.client.read_static_attributes(
+            "STREAM-gauge-1",
+            ["stream_order", "ele_mt_sav"],
+        )
+        self.access.read_static_attributes.assert_called_once_with(
+            site_ids="STREAM-gauge-1",
+            columns=["stream_order", "ele_mt_sav"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -135,6 +135,50 @@ class StreamAccess:
         except Exception as error:
             raise RuntimeError(f"Unable to read STREAM streamflow: {error}") from error
 
+    def read_static_attributes(
+        self,
+        site_ids: str | Sequence[str],
+        columns: str | Sequence[str],
+    ) -> pd.DataFrame:
+        """Read selected static catchment attributes for one or more sites."""
+
+        site_ids = self._normalize_values(site_ids, "site_ids")
+        columns = self._normalize_values(columns, "columns")
+        if not site_ids:
+            raise ValueError("site_ids must contain at least one site")
+        if not columns:
+            raise ValueError("columns must contain at least one attribute")
+
+        selected_columns = ["STREAM_ID"]
+        selected_columns.extend(
+            column for column in columns if column != "STREAM_ID"
+        )
+
+        filesystem = self._filesystem("static catchment attributes")
+        try:
+            dataset = ds.dataset(
+                dataset_path("static_catchment_characteristics"),
+                format="parquet",
+                filesystem=filesystem,
+            )
+            unknown = sorted(set(selected_columns) - set(dataset.schema.names))
+            if unknown:
+                raise ValueError(
+                    f"Unknown static attribute column(s): {', '.join(unknown)}"
+                )
+
+            expression = ds.field("STREAM_ID").isin(site_ids)
+            return dataset.to_table(
+                columns=selected_columns,
+                filter=expression,
+            ).to_pandas()
+        except ValueError:
+            raise
+        except Exception as error:
+            raise RuntimeError(
+                f"Unable to read STREAM static catchment attributes: {error}"
+            ) from error
+
     def _filesystem(self, dataset_name: str):
         filesystem = self._hydroshare.get_s3_filesystem()
         if filesystem is None:

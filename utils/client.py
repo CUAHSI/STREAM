@@ -73,3 +73,15 @@ class StreamClient:
             end=end,
             quality=quality,
         )
+
+    def read_static_attributes(
+        self,
+        site_ids: str | Sequence[str],
+        columns: str | Sequence[str],
+    ) -> pd.DataFrame:
+        """Read selected static catchment attributes."""
+
+        return self._access.read_static_attributes(
+            site_ids=site_ids,
+            columns=columns,
+        )
