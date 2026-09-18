@@ -95,6 +95,46 @@ class StreamAccess:
         except Exception as error:
             raise RuntimeError(f"Unable to read STREAM water quality: {error}") from error
 
+    def read_streamflow(
+        self,
+        site_ids: str | Sequence[str],
+        start=None,
+        end=None,
+        quality: str | Sequence[str] | None = None,
+    ) -> pd.DataFrame:
+        """Read filtered hourly streamflow observations."""
+
+        site_ids = self._normalize_values(site_ids, "site_ids")
+        if not site_ids:
+            raise ValueError("site_ids must contain at least one site")
+
+        start_time = self._parse_date(start, "start")
+        end_time = self._parse_date(end, "end")
+        quality_flags = normalize_quality(quality)
+        if start_time is not None and end_time is not None and start_time > end_time:
+            raise ValueError("start must be before or equal to end")
+
+        expression = ds.field("STREAM_ID").isin(site_ids)
+        if start_time is not None:
+            expression &= ds.field("DateTime") >= start_time.to_pydatetime()
+        if end_time is not None:
+            expression &= ds.field("DateTime") <= end_time.to_pydatetime()
+        if quality_flags is not None:
+            expression &= ds.field(QUALITY_FLAG_COLUMNS["Q_m3s"]).isin(quality_flags)
+
+        filesystem = self._filesystem("streamflow")
+        try:
+            dataset = ds.dataset(
+                dataset_path("streamflow"),
+                format="parquet",
+                filesystem=filesystem,
+                partitioning="hive",
+            )
+            columns = ["STREAM_ID", "DateTime", "Q_m3s", "Flag_Q_m3s"]
+            return dataset.to_table(columns=columns, filter=expression).to_pandas()
+        except Exception as error:
+            raise RuntimeError(f"Unable to read STREAM streamflow: {error}") from error
+
     def _filesystem(self, dataset_name: str):
         filesystem = self._hydroshare.get_s3_filesystem()
         if filesystem is None:

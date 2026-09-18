@@ -57,3 +57,19 @@ class StreamClient:
             end=end,
             quality=quality,
         )
+
+    def read_streamflow(
+        self,
+        site_ids: str | Sequence[str],
+        start=None,
+        end=None,
+        quality: str | Sequence[str] | None = None,
+    ) -> pd.DataFrame:
+        """Read filtered hourly streamflow observations."""
+
+        return self._access.read_streamflow(
+            site_ids=site_ids,
+            start=start,
+            end=end,
+            quality=quality,
+        )

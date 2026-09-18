@@ -57,6 +57,20 @@ class StreamClientTests(unittest.TestCase):
             quality="A",
         )
 
+    def test_delegates_streamflow_read(self):
+        self.client.read_streamflow(
+            "STREAM-gauge-1",
+            start="2020-01-01",
+            end="2020-12-31",
+            quality="approved",
+        )
+        self.access.read_streamflow.assert_called_once_with(
+            site_ids="STREAM-gauge-1",
+            start="2020-01-01",
+            end="2020-12-31",
+            quality="approved",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

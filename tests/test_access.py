@@ -90,6 +90,53 @@ class StreamAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "at least one site"):
             self.access.read_water_quality([], "WTemp_C")
 
+    @patch("utils.access.ds.dataset")
+    def test_reads_filtered_streamflow(self, dataset_mock):
+        expected = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1"],
+                "DateTime": [pd.Timestamp("2020-01-01")],
+                "Q_m3s": [2.5],
+                "Flag_Q_m3s": ["A"],
+            }
+        )
+        table = Mock()
+        table.to_pandas.return_value = expected
+        dataset_mock.return_value.to_table.return_value = table
+
+        result = self.access.read_streamflow(
+            site_ids="STREAM-gauge-1",
+            start="2020-01-01",
+            end="2020-12-31",
+            quality="approved",
+        )
+
+        pd.testing.assert_frame_equal(result, expected)
+        dataset_mock.assert_called_once_with(
+            dataset_path("streamflow"),
+            format="parquet",
+            filesystem=self.filesystem,
+            partitioning="hive",
+        )
+        call = dataset_mock.return_value.to_table.call_args
+        self.assertEqual(
+            call.kwargs["columns"],
+            ["STREAM_ID", "DateTime", "Q_m3s", "Flag_Q_m3s"],
+        )
+        self.assertIsNotNone(call.kwargs["filter"])
+
+    def test_streamflow_requires_at_least_one_site(self):
+        with self.assertRaisesRegex(ValueError, "at least one site"):
+            self.access.read_streamflow([])
+
+    def test_streamflow_rejects_reversed_date_range(self):
+        with self.assertRaisesRegex(ValueError, "start must be before"):
+            self.access.read_streamflow(
+                "STREAM-gauge-1",
+                start="2021-01-01",
+                end="2020-01-01",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
