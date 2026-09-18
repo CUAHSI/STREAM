@@ -55,6 +55,13 @@ QUALITY_FLAG_COLUMNS: dict[str, str] = {
 }
 
 
+# Variables stored in the continuous water-quality dataset. Streamflow has a
+# quality flag too, but is stored in its own dataset.
+WATER_QUALITY_VARIABLES: tuple[str, ...] = tuple(
+    variable for variable in QUALITY_FLAG_COLUMNS if variable != "Q_m3s"
+)
+
+
 def dataset_path(name: str) -> str:
     """Return the full HydroShare S3 path for a named STREAM dataset.
 
