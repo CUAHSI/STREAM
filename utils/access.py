@@ -6,6 +6,7 @@ import pandas as pd
 import pyarrow.dataset as ds
 
 from utils.catalog import QUALITY_FLAG_COLUMNS, WATER_QUALITY_VARIABLES, dataset_path
+from utils.quality import normalize_quality
 
 
 class StreamAccess:
@@ -44,6 +45,7 @@ class StreamAccess:
         variables: str | Sequence[str],
         start=None,
         end=None,
+        quality: str | Sequence[str] | None = None,
     ) -> pd.DataFrame:
         """Read selected water-quality variables, sites, and dates."""
 
@@ -64,6 +66,7 @@ class StreamAccess:
 
         start_time = self._parse_date(start, "start")
         end_time = self._parse_date(end, "end")
+        quality_flags = normalize_quality(quality)
         if start_time is not None and end_time is not None and start_time > end_time:
             raise ValueError("start must be before or equal to end")
 
@@ -76,6 +79,9 @@ class StreamAccess:
             expression &= ds.field("DateTime") >= start_time.to_pydatetime()
         if end_time is not None:
             expression &= ds.field("DateTime") <= end_time.to_pydatetime()
+        if quality_flags is not None:
+            for variable in variables:
+                expression &= ds.field(QUALITY_FLAG_COLUMNS[variable]).isin(quality_flags)
 
         filesystem = self._filesystem("water quality")
         try:

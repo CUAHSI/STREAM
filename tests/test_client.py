@@ -47,12 +47,14 @@ class StreamClientTests(unittest.TestCase):
             "WTemp_C",
             start="2020-01-01",
             end="2020-12-31",
+            quality="A",
         )
         self.access.read_water_quality.assert_called_once_with(
             site_ids="STREAM-gauge-1",
             variables="WTemp_C",
             start="2020-01-01",
             end="2020-12-31",
+            quality="A",
         )
 
 

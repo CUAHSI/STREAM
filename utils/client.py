@@ -46,6 +46,7 @@ class StreamClient:
         variables: str | Sequence[str],
         start=None,
         end=None,
+        quality: str | Sequence[str] | None = None,
     ) -> pd.DataFrame:
         """Read filtered hourly water-quality observations."""
 
@@ -54,4 +55,5 @@ class StreamClient:
             variables=variables,
             start=start,
             end=end,
+            quality=quality,
         )

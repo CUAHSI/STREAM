@@ -56,6 +56,7 @@ class StreamAccessTests(unittest.TestCase):
             variables="WTemp_C",
             start="2020-01-01",
             end="2020-12-31",
+            quality="approved",
         )
 
         pd.testing.assert_frame_equal(result, expected)
