@@ -375,8 +375,10 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/80/56/60547f7801b97c67e97491dc3d9ade9fbccbd0325058fd3dfcb2f5d98d90/cattrs-26.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/ba/5a/18ad964b0086c6e62e2e7500f7edc89e3faa45033c71c1893d34eed2b2de/dnspython-2.8.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/de/15/545e2b6cf2e3be84bc1ed85613edd75b8aea69807a71c26f4ca6a9258e82/email_validator-2.3.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/b1/8b/88f16936a8e8070a83d36239555227ecd91728f9ef222c5382cda07e0fd6/h5netcdf-1.8.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/24/f4/6ff2588c03b74eeb5450bba6d088a51f07ab459a7d799dc0414a490e5225/hsclient-1.1.7-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/4f/d2/621580db414b60a78eb9a6404954f5e842aec4298acee50a737812ffe71e/hsmodels-1.1.2-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/2d/b4/a62b152ed1bdd2bca4212ec970a52e9bd1a3bc571bed6cba2feff0ba8a97/hydrosignatures-0.19.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/15/aa/0aca39a37d3c7eb941ba736ede56d689e7be91cab5d9ca846bde3999eba6/isodate-0.7.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/04/96/92447566d16df59b2a776c0fb82dbc4d9e07cd95062562af01e408583fc4/itsdangerous-2.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/27/b5/728b0578791b397ace8d1b101c8b3fe10f36043542f7bb85f82d8bdc3f50/lxml-6.1.2-cp314-cp314-macosx_10_15_universal2.whl
@@ -386,9 +388,10 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/42/da/e2e1683811c427492ee0e86e8fae8d55eb5cca032220438599991fdad866/pycares-5.0.1-cp314-cp314-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/fd/7b/122376b1fd3c62c1ed9dc80c931ace4844b3c55407b6fb2d199377c9736f/pydantic-2.13.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/ad/1f/8970b150a4b4365623ae00fc88603491f763c627311ae8031e3111356d6e/pydantic_core-2.46.4-cp314-cp314-macosx_11_0_arm64.whl
+      - pypi: https://files.pythonhosted.org/packages/09/1a/b8ed3e2dcdbf101b16751e5702440db09604d4f6c4066e79dbcd8be55857/pygeohydro-0.19.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a0/dd/baf0fb0f1e78a26e2c924c4caeae1fbde555a296f0133d3b9e6e62c42979/pygeoogc-0.19.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/36/9f/7dcacaef62e83fa2af4325a0c9176304844bc95c982f1acf8355439882e3/pygeoutils-0.19.5-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/3e/21/f708a5b12447bc7fb14775b10b4812a2148e5eb9fb6bc87d56c88104b063/pynhd-0.20.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/a0/ec/805d82dce568405ba4f0f05fc139e16a22c2317000ead71be717d9b540e3/pynhd-0.19.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1d/1a/ee73b447f1623a6bb6490af08d4bbed3fb6e38b0adc54553a0d244d4103a/rasterio-1.5.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/d0/6b/6454aa1db753c0f8bc265a5bd5c10b5721a4bb24160fb4faf758cf6be8a1/rdflib-5.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a5/bf/c1775e49b350225bd851576ba75263bc728d8f05c0e31439a45f3429cc7b/requests_cache-1.3.3-py3-none-any.whl
@@ -1826,6 +1829,21 @@ packages:
   - pkg:pypi/h2?source=hash-mapping
   size: 95967
   timestamp: 1756364871835
+- pypi: https://files.pythonhosted.org/packages/b1/8b/88f16936a8e8070a83d36239555227ecd91728f9ef222c5382cda07e0fd6/h5netcdf-1.8.1-py3-none-any.whl
+  name: h5netcdf
+  version: 1.8.1
+  sha256: a76ed7cfc9b8a8908ea7057c4e57e27307acff1049b7f5ed52db6c2247636879
+  requires_dist:
+  - packaging
+  - numpy
+  - h5py ; extra == 'h5py'
+  - pyfive>=1.0.0 ; extra == 'pyfive'
+  - h5pyd ; extra == 'h5pyd'
+  - h5py ; extra == 'test'
+  - netcdf4 ; extra == 'test'
+  - pyfive>=1.0.0 ; extra == 'test'
+  - pytest ; extra == 'test'
+  requires_python: '>=3.9'
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/hdf4-4.2.15-h2ee6834_7.conda
   sha256: c3b01e3c3fe4ca1c4d28c287eaa5168a4f2fd3ffd76690082ac919244c22fa90
   md5: ff5d749fd711dc7759e127db38005924
@@ -1938,6 +1956,21 @@ packages:
   - pkg:pypi/httpx?source=hash-mapping
   size: 63082
   timestamp: 1733663449209
+- pypi: https://files.pythonhosted.org/packages/2d/b4/a62b152ed1bdd2bca4212ec970a52e9bd1a3bc571bed6cba2feff0ba8a97/hydrosignatures-0.19.3-py3-none-any.whl
+  name: hydrosignatures
+  version: 0.19.3
+  sha256: 6f14bec9b753c6f8cfef4d220ad5a53922e211fef2448ae48ce48d9ecff176aa
+  requires_dist:
+  - numpy>=2
+  - pandas>=1
+  - scipy
+  - xarray>=2024.7
+  - numba>=0.57 ; extra == 'jit'
+  - numbagg ; extra == 'jit'
+  - matplotlib ; extra == 'plot'
+  - pytest-cov ; extra == 'test'
+  - pytest-sugar ; extra == 'test'
+  requires_python: '>=3.9'
 - conda: https://conda.anaconda.org/conda-forge/noarch/hyperframe-6.1.0-pyhd8ed1ab_0.conda
   sha256: 77af6f5fe8b62ca07d09ac60127a30d9069fdc3c68d6b256754d0ffb1f7779f8
   md5: 8e6923fc12f1fe8f8c4e5c9f343256ac
@@ -4432,6 +4465,34 @@ packages:
   requires_dist:
   - typing-extensions>=4.14.1
   requires_python: '>=3.9'
+- pypi: https://files.pythonhosted.org/packages/09/1a/b8ed3e2dcdbf101b16751e5702440db09604d4f6c4066e79dbcd8be55857/pygeohydro-0.19.4-py3-none-any.whl
+  name: pygeohydro
+  version: 0.19.4
+  sha256: a850e77152f1c16b2c7d2fb7fb82a75fd536cb37180fe86d8ec9bdec9e9ba6f3
+  requires_dist:
+  - async-retriever>=0.19.3,<0.20
+  - cytoolz
+  - defusedxml
+  - geopandas>=1
+  - h5netcdf
+  - hydrosignatures>=0.19.3,<0.20
+  - numpy>=2
+  - pandas>=1
+  - pygeoogc>=0.19.4,<0.20
+  - pygeoutils>=0.19.5,<0.20
+  - pynhd>=0.19.3,<0.20
+  - pyproj>=3.0.1
+  - rioxarray>=0.15
+  - scipy
+  - shapely>=2
+  - xarray>=2024.7
+  - folium ; extra == 'plot'
+  - matplotlib>=3.5 ; extra == 'plot'
+  - planetary-computer ; extra == 'stac'
+  - pystac-client ; extra == 'stac'
+  - pytest-cov ; extra == 'test'
+  - pytest-sugar ; extra == 'test'
+  requires_python: '>=3.9'
 - pypi: https://files.pythonhosted.org/packages/a0/dd/baf0fb0f1e78a26e2c924c4caeae1fbde555a296f0133d3b9e6e62c42979/pygeoogc-0.19.4-py3-none-any.whl
   name: pygeoogc
   version: 0.19.4
@@ -4486,10 +4547,10 @@ packages:
   - pkg:pypi/pygments?source=compressed-mapping
   size: 959376
   timestamp: 1786995678795
-- pypi: https://files.pythonhosted.org/packages/3e/21/f708a5b12447bc7fb14775b10b4812a2148e5eb9fb6bc87d56c88104b063/pynhd-0.20.0-py3-none-any.whl
+- pypi: https://files.pythonhosted.org/packages/a0/ec/805d82dce568405ba4f0f05fc139e16a22c2317000ead71be717d9b540e3/pynhd-0.19.4-py3-none-any.whl
   name: pynhd
-  version: 0.20.0
-  sha256: 43e9875c84033e140f034108d861bb55aa1a1e87c820458394852675b2450e8b
+  version: 0.19.4
+  sha256: ac3efb82532fdaee5028aaf3b00a49fed8730dc68aea6ac2e63bfc7f1a5dc3ea
   requires_dist:
   - async-retriever>=0.19.3,<0.20
   - cytoolz
@@ -4501,22 +4562,10 @@ packages:
   - pygeoogc>=0.19.3,<0.20
   - pygeoutils>=0.19.5,<0.20
   - shapely>=2
-  - ipykernel ; extra == 'dev'
-  - ipywidgets ; extra == 'dev'
-  - py7zr ; extra == 'dev'
-  - codespell ; extra == 'lint'
-  - pre-commit ; extra == 'lint'
   - py7zr ; extra == 'nhdplus'
   - coverage[toml] ; extra == 'test'
   - pytest-cov ; extra == 'test'
   - pytest-sugar ; extra == 'test'
-  - pandas-stubs ; extra == 'typecheck'
-  - pyright ; extra == 'typecheck'
-  - scipy-stubs ; extra == 'typecheck'
-  - types-geopandas ; extra == 'typecheck'
-  - types-networkx ; extra == 'typecheck'
-  - types-pyyaml ; extra == 'typecheck'
-  - types-shapely ; extra == 'typecheck'
   requires_python: '>=3.9'
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pyobjc-core-12.2.2-py314h63b12ec_0.conda
   sha256: 18577d2164b23888bc4a6b78f1bdfa12efa7253bf0e3f871ccf49fda8d18acd8
@@ -5237,7 +5286,7 @@ packages:
 - pypi: ./
   name: stream-utils
   version: 0.1.0
-  sha256: 98c29d0699fed6a88322516a13f844327313c207dff35bd24cfe756f14e2197e
+  sha256: a9a2d5ecfcd187721618b8c0d3188e52970af145dfd3a7be1357e8ec652e8c95
   requires_python: '>=3.14,<3.15'
 - conda: https://conda.anaconda.org/conda-forge/noarch/tblib-3.2.2-pyhcf101f3_0.conda
   sha256: 6b549360f687ee4d11bf85a6d6a276a30f9333df1857adb0fe785f0f8e9bcd60
