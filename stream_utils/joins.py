@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from utils.temporal import common_observation_period
+from stream_utils.temporal import common_observation_period
 
 
 def join_timeseries(

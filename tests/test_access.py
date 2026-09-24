@@ -3,8 +3,8 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 
-from utils.access import StreamAccess
-from utils.catalog import dataset_path
+from stream_utils.access import StreamAccess
+from stream_utils.catalog import dataset_path
 
 
 class StreamAccessTests(unittest.TestCase):
@@ -14,7 +14,7 @@ class StreamAccessTests(unittest.TestCase):
         self.hydroshare.get_s3_filesystem.return_value = self.filesystem
         self.access = StreamAccess(hydroshare=self.hydroshare)
 
-    @patch("utils.access.pd.read_parquet")
+    @patch("stream_utils.access.pd.read_parquet")
     def test_reads_selected_metadata_columns(self, read_parquet_mock):
         expected = pd.DataFrame({"STREAM_ID": ["STREAM-gauge-1"]})
         read_parquet_mock.return_value = expected
@@ -37,7 +37,7 @@ class StreamAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "S3 filesystem is required"):
             self.access.read_metadata()
 
-    @patch("utils.access.pd.read_parquet")
+    @patch("stream_utils.access.pd.read_parquet")
     def test_reads_huc_lookup_columns(self, read_parquet_mock):
         expected = pd.DataFrame(
             {"STREAM_ID": ["STREAM-gauge-1"], "HUC6": ["020700"], "HUC8": ["02070010"]}
@@ -53,7 +53,7 @@ class StreamAccessTests(unittest.TestCase):
             columns=["STREAM_ID", "HUC6", "HUC8"],
         )
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_reads_filtered_water_quality_columns(self, dataset_mock):
         expected = pd.DataFrame(
             {
@@ -106,7 +106,7 @@ class StreamAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "at least one site"):
             self.access.read_water_quality([], "WTemp_C")
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_reads_filtered_streamflow(self, dataset_mock):
         expected = pd.DataFrame(
             {
@@ -153,7 +153,7 @@ class StreamAccessTests(unittest.TestCase):
                 end="2020-01-01",
             )
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_reads_selected_static_attributes(self, dataset_mock):
         expected = pd.DataFrame(
             {
@@ -181,7 +181,7 @@ class StreamAccessTests(unittest.TestCase):
         self.assertEqual(call.kwargs["columns"], ["STREAM_ID", "stream_order"])
         self.assertIsNotNone(call.kwargs["filter"])
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_rejects_unknown_static_attribute(self, dataset_mock):
         dataset_mock.return_value.schema.names = ["STREAM_ID", "stream_order"]
 
@@ -195,7 +195,7 @@ class StreamAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "at least one site"):
             self.access.read_static_attributes([], "stream_order")
 
-    @patch("utils.access._read_geoparquet")
+    @patch("stream_utils.access._read_geoparquet")
     def test_reads_filtered_watersheds(self, read_parquet_mock):
         expected = Mock(name="watershed_geodataframe")
         read_parquet_mock.return_value = expected
@@ -214,7 +214,7 @@ class StreamAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "at least one site"):
             self.access.read_watersheds([])
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_reads_filtered_grab_samples(self, dataset_mock):
         expected = pd.DataFrame(
             {
@@ -268,7 +268,7 @@ class StreamAccessTests(unittest.TestCase):
                 end="2020-01-01",
             )
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_reads_filtered_meteorology(self, dataset_mock):
         expected = pd.DataFrame(
             {
@@ -323,7 +323,7 @@ class StreamAccessTests(unittest.TestCase):
                 end="2020-01-01",
             )
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_reads_selected_land_cover_variables(self, dataset_mock):
         expected = pd.DataFrame(
             {
@@ -357,7 +357,7 @@ class StreamAccessTests(unittest.TestCase):
         )
         self.assertIsNotNone(call.kwargs["filter"])
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_land_cover_defaults_to_all_variables(self, dataset_mock):
         dataset_mock.return_value.to_table.return_value.to_pandas.return_value = (
             pd.DataFrame()
@@ -386,7 +386,7 @@ class StreamAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "at least one site"):
             self.access.read_land_cover([])
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_reads_selected_anthropogenic_variables(self, dataset_mock):
         expected = pd.DataFrame(
             {
@@ -420,7 +420,7 @@ class StreamAccessTests(unittest.TestCase):
         )
         self.assertIsNotNone(call.kwargs["filter"])
 
-    @patch("utils.access.ds.dataset")
+    @patch("stream_utils.access.ds.dataset")
     def test_anthropogenic_defaults_to_all_variables(self, dataset_mock):
         dataset_mock.return_value.to_table.return_value.to_pandas.return_value = (
             pd.DataFrame()

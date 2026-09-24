@@ -8,7 +8,7 @@ from typing import Any
 
 import pandas as pd
 
-from utils.catalog import RESOURCE_ID
+from stream_utils.catalog import RESOURCE_ID
 
 
 def export_subset(

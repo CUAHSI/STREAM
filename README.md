@@ -51,7 +51,7 @@ when remote data access is requested.
 ## Basic usage
 
 ```python
-from utils.client import StreamClient
+from stream_utils.client import StreamClient
 
 stream = StreamClient()
 
@@ -76,7 +76,7 @@ notebooks/
   tutorials/          Maintained user tutorials
   parquet-workflow/   Dataset creation and upload workflow
   workshop-archive/   Historical workshop examples and prototypes
-utils/                Reusable Python modules
+stream_utils/         Reusable Python package
 tests/                Unit tests
 ```
 
@@ -91,7 +91,7 @@ pixi run python -m unittest discover -s tests
 Use `export_subset` to save a Parquet or CSV subset with a JSON provenance.
 
 ```python
-from utils.export import export_subset
+from stream_utils.export import export_subset
 
 export_subset(
     water_quality,

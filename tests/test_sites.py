@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from utils.sites import filter_sites
+from stream_utils.sites import filter_sites
 
 
 class FilterSitesTests(unittest.TestCase):

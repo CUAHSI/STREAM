@@ -5,7 +5,7 @@ from collections.abc import Sequence
 import pandas as pd
 import pyarrow.dataset as ds
 
-from utils.catalog import (
+from stream_utils.catalog import (
     ANTHROPOGENIC_VARIABLES,
     GRAB_SAMPLE_VARIABLES,
     LAND_COVER_VARIABLES,
@@ -14,7 +14,7 @@ from utils.catalog import (
     WATER_QUALITY_VARIABLES,
     dataset_path,
 )
-from utils.quality import normalize_quality
+from stream_utils.quality import normalize_quality
 
 
 class StreamAccess:
@@ -22,7 +22,7 @@ class StreamAccess:
 
     def __init__(self, hydroshare=None):
         if hydroshare is None:
-            from utils.S3hsclient import S3HydroShare
+            from stream_utils.S3hsclient import S3HydroShare
 
             hydroshare = S3HydroShare()
         self._hydroshare = hydroshare

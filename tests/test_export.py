@@ -5,8 +5,8 @@ import unittest
 
 import pandas as pd
 
-from utils.catalog import RESOURCE_ID
-from utils.export import export_subset
+from stream_utils.catalog import RESOURCE_ID
+from stream_utils.export import export_subset
 
 
 class ExportSubsetTests(unittest.TestCase):

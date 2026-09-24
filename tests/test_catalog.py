@@ -1,6 +1,6 @@
 import unittest
 
-from utils.catalog import (
+from stream_utils.catalog import (
     ANTHROPOGENIC_VARIABLES,
     DATASETS,
     GRAB_SAMPLE_VARIABLES,
