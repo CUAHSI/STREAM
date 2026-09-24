@@ -41,11 +41,19 @@ class StreamClient:
         nearest: int | None = None,
         huc6: str | Sequence[str] | None = None,
         huc8: str | Sequence[str] | None = None,
+        streamflow: bool | None = None,
+        grab_variables: str | Sequence[str] | None = None,
     ) -> pd.DataFrame:
         """Find sites by state and available water-quality variables."""
 
         sites = self.read_metadata(columns=SITE_COLUMNS)
-        sites = filter_sites(sites, states=states, variables=variables)
+        sites = filter_sites(
+            sites,
+            states=states,
+            variables=variables,
+            streamflow=streamflow,
+            grab_variables=grab_variables,
+        )
         if huc6 is not None or huc8 is not None:
             lookup = self._access.read_huc_lookup()
             sites = filter_huc(sites, lookup, huc6=huc6, huc8=huc8)
@@ -105,4 +113,76 @@ class StreamClient:
         return self._access.read_static_attributes(
             site_ids=site_ids,
             columns=columns,
+        )
+
+    def read_watersheds(
+        self,
+        site_ids: str | Sequence[str],
+    ):
+        """Read watershed geometries for selected sites."""
+
+        return self._access.read_watersheds(site_ids=site_ids)
+
+    def read_grab_samples(
+        self,
+        site_ids: str | Sequence[str],
+        variables: str | Sequence[str],
+        start=None,
+        end=None,
+    ) -> pd.DataFrame:
+        """Read filtered grab-sample measurements."""
+
+        return self._access.read_grab_samples(
+            site_ids=site_ids,
+            variables=variables,
+            start=start,
+            end=end,
+        )
+
+    def read_meteorology(
+        self,
+        site_ids: str | Sequence[str],
+        variables: str | Sequence[str],
+        start=None,
+        end=None,
+    ) -> pd.DataFrame:
+        """Read filtered hourly meteorological observations."""
+
+        return self._access.read_meteorology(
+            site_ids=site_ids,
+            variables=variables,
+            start=start,
+            end=end,
+        )
+
+    def read_land_cover(
+        self,
+        site_ids: str | Sequence[str],
+        variables: str | Sequence[str] | None = None,
+        start=None,
+        end=None,
+    ) -> pd.DataFrame:
+        """Read annual watershed land-cover fractions."""
+
+        return self._access.read_land_cover(
+            site_ids=site_ids,
+            variables=variables,
+            start=start,
+            end=end,
+        )
+
+    def read_anthropogenic(
+        self,
+        site_ids: str | Sequence[str],
+        variables: str | Sequence[str] | None = None,
+        start=None,
+        end=None,
+    ) -> pd.DataFrame:
+        """Read annual watershed-scale anthropogenic variables."""
+
+        return self._access.read_anthropogenic(
+            site_ids=site_ids,
+            variables=variables,
+            start=start,
+            end=end,
         )

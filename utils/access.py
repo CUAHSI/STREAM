@@ -5,7 +5,15 @@ from collections.abc import Sequence
 import pandas as pd
 import pyarrow.dataset as ds
 
-from utils.catalog import QUALITY_FLAG_COLUMNS, WATER_QUALITY_VARIABLES, dataset_path
+from utils.catalog import (
+    ANTHROPOGENIC_VARIABLES,
+    GRAB_SAMPLE_VARIABLES,
+    LAND_COVER_VARIABLES,
+    METEOROLOGY_VARIABLES,
+    QUALITY_FLAG_COLUMNS,
+    WATER_QUALITY_VARIABLES,
+    dataset_path,
+)
 from utils.quality import normalize_quality
 
 
@@ -192,6 +200,226 @@ class StreamAccess:
                 f"Unable to read STREAM static catchment attributes: {error}"
             ) from error
 
+    def read_watersheds(
+        self,
+        site_ids: str | Sequence[str],
+    ):
+        """Read watershed geometries for one or more STREAM sites."""
+
+        site_ids = self._normalize_values(site_ids, "site_ids")
+        if not site_ids:
+            raise ValueError("site_ids must contain at least one site")
+
+        filesystem = self._filesystem("watersheds")
+        try:
+            return _read_geoparquet(
+                dataset_path("watersheds"),
+                filesystem=filesystem,
+                columns=["STREAM_ID", "COMID", "area_km2", "geometry"],
+                filters=[("STREAM_ID", "in", site_ids)],
+            )
+        except Exception as error:
+            raise RuntimeError(f"Unable to read STREAM watersheds: {error}") from error
+
+    def read_grab_samples(
+        self,
+        site_ids: str | Sequence[str],
+        variables: str | Sequence[str],
+        start=None,
+        end=None,
+    ) -> pd.DataFrame:
+        """Read selected grab-sample measurements, sites, and dates."""
+
+        site_ids = self._normalize_values(site_ids, "site_ids")
+        variables = self._normalize_values(variables, "variables")
+        if not site_ids:
+            raise ValueError("site_ids must contain at least one site")
+        if not variables:
+            raise ValueError("variables must contain at least one variable")
+
+        unknown = sorted(set(variables) - set(GRAB_SAMPLE_VARIABLES))
+        if unknown:
+            available = ", ".join(GRAB_SAMPLE_VARIABLES)
+            raise ValueError(
+                f"Unknown grab-sample variable(s): {', '.join(unknown)}. "
+                f"Available variables: {available}"
+            )
+
+        start_time = self._parse_date(start, "start")
+        end_time = self._parse_date(end, "end")
+        if start_time is not None and end_time is not None and start_time > end_time:
+            raise ValueError("start must be before or equal to end")
+
+        expression = ds.field("STREAM_ID").isin(site_ids)
+        if start_time is not None:
+            expression &= ds.field("DateTime") >= start_time.to_pydatetime()
+        if end_time is not None:
+            expression &= ds.field("DateTime") <= end_time.to_pydatetime()
+
+        columns = ["STREAM_ID", "DateTime", *variables]
+        filesystem = self._filesystem("grab samples")
+        try:
+            dataset = ds.dataset(
+                dataset_path("grab_samples"),
+                format="parquet",
+                filesystem=filesystem,
+            )
+            return dataset.to_table(columns=columns, filter=expression).to_pandas()
+        except Exception as error:
+            raise RuntimeError(f"Unable to read STREAM grab samples: {error}") from error
+
+    def read_meteorology(
+        self,
+        site_ids: str | Sequence[str],
+        variables: str | Sequence[str],
+        start=None,
+        end=None,
+    ) -> pd.DataFrame:
+        """Read selected hourly meteorological variables, sites, and dates."""
+
+        site_ids = self._normalize_values(site_ids, "site_ids")
+        variables = self._normalize_values(variables, "variables")
+        if not site_ids:
+            raise ValueError("site_ids must contain at least one site")
+        if not variables:
+            raise ValueError("variables must contain at least one variable")
+
+        unknown = sorted(set(variables) - set(METEOROLOGY_VARIABLES))
+        if unknown:
+            available = ", ".join(METEOROLOGY_VARIABLES)
+            raise ValueError(
+                f"Unknown meteorology variable(s): {', '.join(unknown)}. "
+                f"Available variables: {available}"
+            )
+
+        start_time = self._parse_date(start, "start")
+        end_time = self._parse_date(end, "end")
+        if start_time is not None and end_time is not None and start_time > end_time:
+            raise ValueError("start must be before or equal to end")
+
+        expression = ds.field("STREAM_ID").isin(site_ids)
+        if start_time is not None:
+            expression &= ds.field("time") >= start_time.to_pydatetime()
+        if end_time is not None:
+            expression &= ds.field("time") <= end_time.to_pydatetime()
+
+        columns = ["STREAM_ID", "time", *variables]
+        filesystem = self._filesystem("meteorology")
+        try:
+            dataset = ds.dataset(
+                dataset_path("meteorology"),
+                format="parquet",
+                filesystem=filesystem,
+                partitioning="hive",
+            )
+            return dataset.to_table(columns=columns, filter=expression).to_pandas()
+        except Exception as error:
+            raise RuntimeError(f"Unable to read STREAM meteorology: {error}") from error
+
+    def read_land_cover(
+        self,
+        site_ids: str | Sequence[str],
+        variables: str | Sequence[str] | None = None,
+        start=None,
+        end=None,
+    ) -> pd.DataFrame:
+        """Read annual watershed land-cover fractions."""
+
+        site_ids = self._normalize_values(site_ids, "site_ids")
+        if not site_ids:
+            raise ValueError("site_ids must contain at least one site")
+
+        if variables is None:
+            selected_variables = list(LAND_COVER_VARIABLES)
+        else:
+            selected_variables = self._normalize_values(variables, "variables")
+            if not selected_variables:
+                raise ValueError("variables must contain at least one variable")
+
+        unknown = sorted(set(selected_variables) - set(LAND_COVER_VARIABLES))
+        if unknown:
+            available = ", ".join(LAND_COVER_VARIABLES)
+            raise ValueError(
+                f"Unknown land-cover variable(s): {', '.join(unknown)}. "
+                f"Available variables: {available}"
+            )
+
+        start_time = self._parse_date(start, "start")
+        end_time = self._parse_date(end, "end")
+        if start_time is not None and end_time is not None and start_time > end_time:
+            raise ValueError("start must be before or equal to end")
+
+        expression = ds.field("STREAM_ID").isin(site_ids)
+        if start_time is not None:
+            expression &= ds.field("DateTime") >= start_time.to_pydatetime()
+        if end_time is not None:
+            expression &= ds.field("DateTime") <= end_time.to_pydatetime()
+
+        columns = ["STREAM_ID", "DateTime", *selected_variables]
+        filesystem = self._filesystem("land cover")
+        try:
+            dataset = ds.dataset(
+                dataset_path("land_cover"),
+                format="parquet",
+                filesystem=filesystem,
+            )
+            return dataset.to_table(columns=columns, filter=expression).to_pandas()
+        except Exception as error:
+            raise RuntimeError(f"Unable to read STREAM land cover: {error}") from error
+
+    def read_anthropogenic(
+        self,
+        site_ids: str | Sequence[str],
+        variables: str | Sequence[str] | None = None,
+        start=None,
+        end=None,
+    ) -> pd.DataFrame:
+        """Read annual watershed-scale anthropogenic variables."""
+
+        site_ids = self._normalize_values(site_ids, "site_ids")
+        if not site_ids:
+            raise ValueError("site_ids must contain at least one site")
+
+        if variables is None:
+            selected_variables = list(ANTHROPOGENIC_VARIABLES)
+        else:
+            selected_variables = self._normalize_values(variables, "variables")
+            if not selected_variables:
+                raise ValueError("variables must contain at least one variable")
+
+        unknown = sorted(set(selected_variables) - set(ANTHROPOGENIC_VARIABLES))
+        if unknown:
+            available = ", ".join(ANTHROPOGENIC_VARIABLES)
+            raise ValueError(
+                f"Unknown anthropogenic variable(s): {', '.join(unknown)}. "
+                f"Available variables: {available}"
+            )
+
+        start_time = self._parse_date(start, "start")
+        end_time = self._parse_date(end, "end")
+        if start_time is not None and end_time is not None and start_time > end_time:
+            raise ValueError("start must be before or equal to end")
+
+        expression = ds.field("STREAM_ID").isin(site_ids)
+        if start_time is not None:
+            expression &= ds.field("DateTime") >= start_time.to_pydatetime()
+        if end_time is not None:
+            expression &= ds.field("DateTime") <= end_time.to_pydatetime()
+
+        columns = ["STREAM_ID", "DateTime", *selected_variables]
+        filesystem = self._filesystem("anthropogenic data")
+        try:
+            dataset = ds.dataset(
+                dataset_path("anthropogenic"),
+                format="parquet",
+                filesystem=filesystem,
+            )
+            return dataset.to_table(columns=columns, filter=expression).to_pandas()
+        except Exception as error:
+            raise RuntimeError(
+                f"Unable to read STREAM anthropogenic data: {error}"
+            ) from error
+
     def _filesystem(self, dataset_name: str):
         filesystem = self._hydroshare.get_s3_filesystem()
         if filesystem is None:
@@ -223,3 +451,15 @@ class StreamAccess:
             return pd.Timestamp(value)
         except (TypeError, ValueError) as error:
             raise ValueError(f"{argument_name} must be a valid date") from error
+
+
+def _read_geoparquet(*args, **kwargs):
+    """Import GeoPandas only when watershed geometry is requested."""
+
+    try:
+        import geopandas as gpd
+    except ImportError as error:
+        raise RuntimeError(
+            "GeoPandas is required to read STREAM watershed geometries"
+        ) from error
+    return gpd.read_parquet(*args, **kwargs)

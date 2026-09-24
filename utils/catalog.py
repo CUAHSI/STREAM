@@ -29,8 +29,8 @@ DATASETS: dict[str, str] = {
 TIME_COLUMNS: dict[str, str] = {
     "water_quality": "DateTime",
     "meteorology": "time",
-    "land_cover": "year",
-    "anthropogenic": "year",
+    "land_cover": "DateTime",
+    "anthropogenic": "DateTime",
     "streamflow": "DateTime",
     "grab_samples": "DateTime",
 }
@@ -60,6 +60,70 @@ QUALITY_FLAG_COLUMNS: dict[str, str] = {
 # quality flag too, but is stored in its own dataset.
 WATER_QUALITY_VARIABLES: tuple[str, ...] = tuple(
     variable for variable in QUALITY_FLAG_COLUMNS if variable != "Q_m3s"
+)
+
+
+GRAB_SAMPLE_VARIABLES: tuple[str, ...] = (
+    "SSC_mgL",
+    "TSS_mgL",
+    "DOC_mgL",
+    "Cl_mgL",
+    "NO3_mgNL",
+    "PO4_mgPL",
+    "Chla_ugL",
+    "PC_ugL",
+)
+
+
+METEOROLOGY_VARIABLES: tuple[str, ...] = (
+    "APCP_surface",
+    "DLWRF_surface",
+    "DSWRF_surface",
+    "PRES_surface",
+    "SPFH_2maboveground",
+    "TMP_2maboveground",
+    "UGRD_10maboveground",
+    "VGRD_10maboveground",
+)
+
+
+LAND_COVER_VARIABLES: tuple[str, ...] = (
+    "Open Water",
+    "Perennial Ice/Snow",
+    "Developed Open Space",
+    "Developed Low Intensity",
+    "Developed Medium Intensity",
+    "Developed High Intensity",
+    "Barren Land",
+    "Deciduous Forest",
+    "Evergreen Forest",
+    "Mixed Forest",
+    "Shrub/Scrub",
+    "Grassland/Herbaceous",
+    "Pasture/Hay",
+    "Cultivated Crops",
+    "Woody Wetlands",
+    "Emergent Herbaceous Wetlands",
+)
+
+
+ANTHROPOGENIC_VARIABLES: tuple[str, ...] = (
+    "so4_tw",
+    "cl_tw",
+    "no3_tw",
+    "na_tw",
+    "k_tw",
+    "ca_tw",
+    "mg_tw",
+    "nh4_tw",
+    "salt_pound",
+    "nfer",
+    "pfer",
+    "fertnkg",
+    "fertpkg",
+    "manurenkg",
+    "manurepkg",
+    "irrig",
 )
 
 

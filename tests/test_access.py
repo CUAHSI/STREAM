@@ -195,6 +195,260 @@ class StreamAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "at least one site"):
             self.access.read_static_attributes([], "stream_order")
 
+    @patch("utils.access._read_geoparquet")
+    def test_reads_filtered_watersheds(self, read_parquet_mock):
+        expected = Mock(name="watershed_geodataframe")
+        read_parquet_mock.return_value = expected
+
+        result = self.access.read_watersheds("STREAM-gauge-1")
+
+        self.assertIs(result, expected)
+        read_parquet_mock.assert_called_once_with(
+            dataset_path("watersheds"),
+            filesystem=self.filesystem,
+            columns=["STREAM_ID", "COMID", "area_km2", "geometry"],
+            filters=[("STREAM_ID", "in", ["STREAM-gauge-1"])],
+        )
+
+    def test_watersheds_require_at_least_one_site(self):
+        with self.assertRaisesRegex(ValueError, "at least one site"):
+            self.access.read_watersheds([])
+
+    @patch("utils.access.ds.dataset")
+    def test_reads_filtered_grab_samples(self, dataset_mock):
+        expected = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1"],
+                "DateTime": [pd.Timestamp("2020-01-15")],
+                "DOC_mgL": [3.2],
+                "Cl_mgL": [12.0],
+            }
+        )
+        table = Mock()
+        table.to_pandas.return_value = expected
+        dataset_mock.return_value.to_table.return_value = table
+
+        result = self.access.read_grab_samples(
+            site_ids="STREAM-gauge-1",
+            variables=["DOC_mgL", "Cl_mgL"],
+            start="2020-01-01",
+            end="2020-12-31",
+        )
+
+        pd.testing.assert_frame_equal(result, expected)
+        dataset_mock.assert_called_once_with(
+            dataset_path("grab_samples"),
+            format="parquet",
+            filesystem=self.filesystem,
+        )
+        call = dataset_mock.return_value.to_table.call_args
+        self.assertEqual(
+            call.kwargs["columns"],
+            ["STREAM_ID", "DateTime", "DOC_mgL", "Cl_mgL"],
+        )
+        self.assertIsNotNone(call.kwargs["filter"])
+
+    def test_rejects_unknown_grab_sample_variable(self):
+        with self.assertRaisesRegex(ValueError, "Unknown grab-sample variable"):
+            self.access.read_grab_samples(
+                site_ids="STREAM-gauge-1",
+                variables="not-a-variable",
+            )
+
+    def test_grab_samples_require_at_least_one_site(self):
+        with self.assertRaisesRegex(ValueError, "at least one site"):
+            self.access.read_grab_samples([], "DOC_mgL")
+
+    def test_grab_samples_reject_reversed_date_range(self):
+        with self.assertRaisesRegex(ValueError, "start must be before"):
+            self.access.read_grab_samples(
+                "STREAM-gauge-1",
+                "DOC_mgL",
+                start="2021-01-01",
+                end="2020-01-01",
+            )
+
+    @patch("utils.access.ds.dataset")
+    def test_reads_filtered_meteorology(self, dataset_mock):
+        expected = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1"],
+                "time": [pd.Timestamp("2020-01-01 00:00")],
+                "APCP_surface": [1.5],
+                "TMP_2maboveground": [280.0],
+            }
+        )
+        table = Mock()
+        table.to_pandas.return_value = expected
+        dataset_mock.return_value.to_table.return_value = table
+
+        result = self.access.read_meteorology(
+            site_ids="STREAM-gauge-1",
+            variables=["APCP_surface", "TMP_2maboveground"],
+            start="2020-01-01",
+            end="2020-12-31",
+        )
+
+        pd.testing.assert_frame_equal(result, expected)
+        dataset_mock.assert_called_once_with(
+            dataset_path("meteorology"),
+            format="parquet",
+            filesystem=self.filesystem,
+            partitioning="hive",
+        )
+        call = dataset_mock.return_value.to_table.call_args
+        self.assertEqual(
+            call.kwargs["columns"],
+            ["STREAM_ID", "time", "APCP_surface", "TMP_2maboveground"],
+        )
+        self.assertIsNotNone(call.kwargs["filter"])
+
+    def test_rejects_unknown_meteorology_variable(self):
+        with self.assertRaisesRegex(ValueError, "Unknown meteorology variable"):
+            self.access.read_meteorology(
+                site_ids="STREAM-gauge-1",
+                variables="not-a-variable",
+            )
+
+    def test_meteorology_requires_at_least_one_site(self):
+        with self.assertRaisesRegex(ValueError, "at least one site"):
+            self.access.read_meteorology([], "APCP_surface")
+
+    def test_meteorology_rejects_reversed_date_range(self):
+        with self.assertRaisesRegex(ValueError, "start must be before"):
+            self.access.read_meteorology(
+                "STREAM-gauge-1",
+                "APCP_surface",
+                start="2021-01-01",
+                end="2020-01-01",
+            )
+
+    @patch("utils.access.ds.dataset")
+    def test_reads_selected_land_cover_variables(self, dataset_mock):
+        expected = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1"],
+                "DateTime": [pd.Timestamp("2020-01-01")],
+                "Cultivated Crops": [0.25],
+                "Deciduous Forest": [0.50],
+            }
+        )
+        table = Mock()
+        table.to_pandas.return_value = expected
+        dataset_mock.return_value.to_table.return_value = table
+
+        result = self.access.read_land_cover(
+            site_ids="STREAM-gauge-1",
+            variables=["Cultivated Crops", "Deciduous Forest"],
+            start="2019-01-01",
+            end="2020-12-31",
+        )
+
+        pd.testing.assert_frame_equal(result, expected)
+        dataset_mock.assert_called_once_with(
+            dataset_path("land_cover"),
+            format="parquet",
+            filesystem=self.filesystem,
+        )
+        call = dataset_mock.return_value.to_table.call_args
+        self.assertEqual(
+            call.kwargs["columns"],
+            ["STREAM_ID", "DateTime", "Cultivated Crops", "Deciduous Forest"],
+        )
+        self.assertIsNotNone(call.kwargs["filter"])
+
+    @patch("utils.access.ds.dataset")
+    def test_land_cover_defaults_to_all_variables(self, dataset_mock):
+        dataset_mock.return_value.to_table.return_value.to_pandas.return_value = (
+            pd.DataFrame()
+        )
+
+        self.access.read_land_cover(site_ids="STREAM-gauge-1")
+
+        columns = dataset_mock.return_value.to_table.call_args.kwargs["columns"]
+        self.assertEqual(columns[:2], ["STREAM_ID", "DateTime"])
+        self.assertEqual(len(columns[2:]), 16)
+        self.assertIn("Open Water", columns)
+        self.assertIn("Emergent Herbaceous Wetlands", columns)
+
+    def test_rejects_unknown_land_cover_variable(self):
+        with self.assertRaisesRegex(ValueError, "Unknown land-cover variable"):
+            self.access.read_land_cover(
+                site_ids="STREAM-gauge-1",
+                variables="not-a-variable",
+            )
+
+    def test_land_cover_rejects_explicit_empty_variables(self):
+        with self.assertRaisesRegex(ValueError, "at least one variable"):
+            self.access.read_land_cover("STREAM-gauge-1", variables=[])
+
+    def test_land_cover_requires_at_least_one_site(self):
+        with self.assertRaisesRegex(ValueError, "at least one site"):
+            self.access.read_land_cover([])
+
+    @patch("utils.access.ds.dataset")
+    def test_reads_selected_anthropogenic_variables(self, dataset_mock):
+        expected = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1"],
+                "DateTime": [pd.Timestamp("2015-01-01")],
+                "salt_pound": [4.2],
+                "irrig": [0.15],
+            }
+        )
+        table = Mock()
+        table.to_pandas.return_value = expected
+        dataset_mock.return_value.to_table.return_value = table
+
+        result = self.access.read_anthropogenic(
+            site_ids="STREAM-gauge-1",
+            variables=["salt_pound", "irrig"],
+            start="2000-01-01",
+            end="2020-12-31",
+        )
+
+        pd.testing.assert_frame_equal(result, expected)
+        dataset_mock.assert_called_once_with(
+            dataset_path("anthropogenic"),
+            format="parquet",
+            filesystem=self.filesystem,
+        )
+        call = dataset_mock.return_value.to_table.call_args
+        self.assertEqual(
+            call.kwargs["columns"],
+            ["STREAM_ID", "DateTime", "salt_pound", "irrig"],
+        )
+        self.assertIsNotNone(call.kwargs["filter"])
+
+    @patch("utils.access.ds.dataset")
+    def test_anthropogenic_defaults_to_all_variables(self, dataset_mock):
+        dataset_mock.return_value.to_table.return_value.to_pandas.return_value = (
+            pd.DataFrame()
+        )
+
+        self.access.read_anthropogenic(site_ids="STREAM-gauge-1")
+
+        columns = dataset_mock.return_value.to_table.call_args.kwargs["columns"]
+        self.assertEqual(columns[:2], ["STREAM_ID", "DateTime"])
+        self.assertEqual(len(columns[2:]), 16)
+        self.assertIn("salt_pound", columns)
+        self.assertIn("irrig", columns)
+
+    def test_rejects_unknown_anthropogenic_variable(self):
+        with self.assertRaisesRegex(ValueError, "Unknown anthropogenic variable"):
+            self.access.read_anthropogenic(
+                site_ids="STREAM-gauge-1",
+                variables="not-a-variable",
+            )
+
+    def test_anthropogenic_rejects_explicit_empty_variables(self):
+        with self.assertRaisesRegex(ValueError, "at least one variable"):
+            self.access.read_anthropogenic("STREAM-gauge-1", variables=[])
+
+    def test_anthropogenic_requires_at_least_one_site(self):
+        with self.assertRaisesRegex(ValueError, "at least one site"):
+            self.access.read_anthropogenic([])
+
 
 if __name__ == "__main__":
     unittest.main()

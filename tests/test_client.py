@@ -41,6 +41,24 @@ class StreamClientTests(unittest.TestCase):
         self.assertEqual(result["STREAM_ID"].tolist(), ["STREAM-gauge-1"])
         self.access.read_metadata.assert_called_once_with(columns=SITE_COLUMNS)
 
+    def test_filters_sites_by_dataset_availability(self):
+        self.access.read_metadata.return_value = pd.DataFrame(
+            {
+                "STREAM_ID": ["site-1", "site-2"],
+                "state_name": ["Virginia", "Virginia"],
+                "WQ_parameters": ["WTemp_C", "WTemp_C"],
+                "streamflow": ["Available", "Not Available"],
+                "grabsamples": ["DOC_mgL, Cl_mgL", "DOC_mgL"],
+            }
+        )
+
+        result = self.client.find_sites(
+            streamflow=True,
+            grab_variables=["DOC_mgL", "Cl_mgL"],
+        )
+
+        self.assertEqual(result["STREAM_ID"].tolist(), ["site-1"])
+
     def test_combines_site_and_bounding_box_filters(self):
         self.access.read_metadata.return_value = pd.DataFrame(
             {
@@ -162,6 +180,69 @@ class StreamClientTests(unittest.TestCase):
         self.access.read_static_attributes.assert_called_once_with(
             site_ids="STREAM-gauge-1",
             columns=["stream_order", "ele_mt_sav"],
+        )
+
+    def test_delegates_watershed_read(self):
+        self.client.read_watersheds(["STREAM-gauge-1", "STREAM-gauge-2"])
+
+        self.access.read_watersheds.assert_called_once_with(
+            site_ids=["STREAM-gauge-1", "STREAM-gauge-2"]
+        )
+
+    def test_delegates_grab_sample_read(self):
+        self.client.read_grab_samples(
+            "STREAM-gauge-1",
+            ["DOC_mgL", "Cl_mgL"],
+            start="2020-01-01",
+            end="2020-12-31",
+        )
+        self.access.read_grab_samples.assert_called_once_with(
+            site_ids="STREAM-gauge-1",
+            variables=["DOC_mgL", "Cl_mgL"],
+            start="2020-01-01",
+            end="2020-12-31",
+        )
+
+    def test_delegates_meteorology_read(self):
+        self.client.read_meteorology(
+            "STREAM-gauge-1",
+            ["APCP_surface", "TMP_2maboveground"],
+            start="2020-01-01",
+            end="2020-12-31",
+        )
+        self.access.read_meteorology.assert_called_once_with(
+            site_ids="STREAM-gauge-1",
+            variables=["APCP_surface", "TMP_2maboveground"],
+            start="2020-01-01",
+            end="2020-12-31",
+        )
+
+    def test_delegates_land_cover_read(self):
+        self.client.read_land_cover(
+            "STREAM-gauge-1",
+            ["Cultivated Crops", "Deciduous Forest"],
+            start="2015-01-01",
+            end="2020-12-31",
+        )
+        self.access.read_land_cover.assert_called_once_with(
+            site_ids="STREAM-gauge-1",
+            variables=["Cultivated Crops", "Deciduous Forest"],
+            start="2015-01-01",
+            end="2020-12-31",
+        )
+
+    def test_delegates_anthropogenic_read(self):
+        self.client.read_anthropogenic(
+            "STREAM-gauge-1",
+            ["salt_pound", "irrig"],
+            start="2000-01-01",
+            end="2020-12-31",
+        )
+        self.access.read_anthropogenic.assert_called_once_with(
+            site_ids="STREAM-gauge-1",
+            variables=["salt_pound", "irrig"],
+            start="2000-01-01",
+            end="2020-12-31",
         )
 
 
