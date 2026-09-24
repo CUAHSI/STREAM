@@ -5286,7 +5286,7 @@ packages:
 - pypi: ./
   name: stream-utils
   version: 0.1.0
-  sha256: a9a2d5ecfcd187721618b8c0d3188e52970af145dfd3a7be1357e8ec652e8c95
+  sha256: 777b26ba81f991b12092d145801c9186d8ed840a7e68829af77a51276f463547
   requires_python: '>=3.14,<3.15'
 - conda: https://conda.anaconda.org/conda-forge/noarch/tblib-3.2.2-pyhcf101f3_0.conda
   sha256: 6b549360f687ee4d11bf85a6d6a276a30f9333df1857adb0fe785f0f8e9bcd60
