@@ -1,6 +1,0 @@
-:8080 {
-  handle {
-    root * /srv
-    file_server
-  }
-}

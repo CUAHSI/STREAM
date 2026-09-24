@@ -1,3 +1,0 @@
-{
-  '*.{js,jsx,vue}': ['eslint --cache --fix', 'prettier --write'],
-}
