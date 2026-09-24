@@ -37,6 +37,22 @@ class StreamAccessTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "S3 filesystem is required"):
             self.access.read_metadata()
 
+    @patch("utils.access.pd.read_parquet")
+    def test_reads_huc_lookup_columns(self, read_parquet_mock):
+        expected = pd.DataFrame(
+            {"STREAM_ID": ["STREAM-gauge-1"], "HUC6": ["020700"], "HUC8": ["02070010"]}
+        )
+        read_parquet_mock.return_value = expected
+
+        result = self.access.read_huc_lookup()
+
+        pd.testing.assert_frame_equal(result, expected)
+        read_parquet_mock.assert_called_once_with(
+            dataset_path("huc_lookup"),
+            filesystem=self.filesystem,
+            columns=["STREAM_ID", "HUC6", "HUC8"],
+        )
+
     @patch("utils.access.ds.dataset")
     def test_reads_filtered_water_quality_columns(self, dataset_mock):
         expected = pd.DataFrame(

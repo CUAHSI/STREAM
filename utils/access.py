@@ -39,6 +39,19 @@ class StreamAccess:
         except Exception as error:
             raise RuntimeError(f"Unable to read STREAM metadata: {error}") from error
 
+    def read_huc_lookup(self) -> pd.DataFrame:
+        """Read the station-to-HUC6/HUC8 lookup table."""
+
+        filesystem = self._filesystem("HUC lookup")
+        try:
+            return pd.read_parquet(
+                dataset_path("huc_lookup"),
+                filesystem=filesystem,
+                columns=["STREAM_ID", "HUC6", "HUC8"],
+            )
+        except Exception as error:
+            raise RuntimeError(f"Unable to read STREAM HUC lookup: {error}") from error
+
     def read_water_quality(
         self,
         site_ids: str | Sequence[str],

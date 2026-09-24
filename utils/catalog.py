@@ -21,6 +21,7 @@ DATASETS: dict[str, str] = {
     "anthropogenic": "dynamic_anthropogenic.parquet",
     "streamflow": "streamflow",
     "grab_samples": "grab_samples.parquet",
+    "huc_lookup": "gage_huc_lookup.parquet",
 }
 
 

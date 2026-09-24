@@ -41,6 +41,89 @@ class StreamClientTests(unittest.TestCase):
         self.assertEqual(result["STREAM_ID"].tolist(), ["STREAM-gauge-1"])
         self.access.read_metadata.assert_called_once_with(columns=SITE_COLUMNS)
 
+    def test_combines_site_and_bounding_box_filters(self):
+        self.access.read_metadata.return_value = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1", "STREAM-gauge-2"],
+                "state_name": ["Virginia", "Virginia"],
+                "WQ_parameters": ["WTemp_C", "WTemp_C"],
+                "longitude_wgs84": [-78.0, -82.0],
+                "latitude_wgs84": [38.0, 38.0],
+            }
+        )
+
+        result = self.client.find_sites(
+            states="Virginia",
+            bbox=(-80.0, 36.0, -75.0, 40.0),
+        )
+
+        self.assertEqual(result["STREAM_ID"].tolist(), ["STREAM-gauge-1"])
+
+    def test_filters_sites_by_radius(self):
+        self.access.read_metadata.return_value = pd.DataFrame(
+            {
+                "STREAM_ID": ["near", "far"],
+                "state_name": ["Virginia", "Virginia"],
+                "WQ_parameters": ["WTemp_C", "WTemp_C"],
+                "longitude_wgs84": [-78.0, -82.0],
+                "latitude_wgs84": [38.0, 38.0],
+            }
+        )
+
+        result = self.client.find_sites(
+            variables="WTemp_C",
+            center=(-78.0, 38.0),
+            radius_km=100,
+        )
+
+        self.assertEqual(result["STREAM_ID"].tolist(), ["near"])
+        self.assertIn("distance_km", result.columns)
+
+    def test_requires_center_and_radius_together(self):
+        self.access.read_metadata.return_value = pd.DataFrame()
+
+        with self.assertRaisesRegex(ValueError, "center requires"):
+            self.client.find_sites(center=(-78.0, 38.0))
+
+    def test_selects_nearest_sites(self):
+        self.access.read_metadata.return_value = pd.DataFrame(
+            {
+                "STREAM_ID": ["second", "first", "third"],
+                "state_name": ["Virginia"] * 3,
+                "WQ_parameters": ["WTemp_C"] * 3,
+                "longitude_wgs84": [-78.5, -78.0, -79.0],
+                "latitude_wgs84": [38.0, 38.0, 38.0],
+            }
+        )
+
+        result = self.client.find_sites(
+            center=(-78.0, 38.0),
+            nearest=2,
+        )
+
+        self.assertEqual(result["STREAM_ID"].tolist(), ["first", "second"])
+
+    def test_filters_sites_by_huc(self):
+        self.access.read_metadata.return_value = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1", "STREAM-gauge-2"],
+                "state_name": ["Virginia", "Maryland"],
+                "WQ_parameters": ["WTemp_C", "WTemp_C"],
+            }
+        )
+        self.access.read_huc_lookup.return_value = pd.DataFrame(
+            {
+                "STREAM_ID": ["STREAM-gauge-1", "STREAM-gauge-2"],
+                "HUC6": ["020700", "020600"],
+                "HUC8": ["02070010", "02060006"],
+            }
+        )
+
+        result = self.client.find_sites(huc8="02070010")
+
+        self.assertEqual(result["STREAM_ID"].tolist(), ["STREAM-gauge-1"])
+        self.access.read_huc_lookup.assert_called_once_with()
+
     def test_delegates_water_quality_read(self):
         self.client.read_water_quality(
             "STREAM-gauge-1",

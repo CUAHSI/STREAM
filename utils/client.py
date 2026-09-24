@@ -7,6 +7,7 @@ import pandas as pd
 from utils.access import StreamAccess
 from utils.catalog import DATASETS, dataset_path
 from utils.sites import SITE_COLUMNS, filter_sites
+from utils.spatial import filter_bbox, filter_huc, filter_radius, select_nearest
 
 
 class StreamClient:
@@ -34,11 +35,31 @@ class StreamClient:
         self,
         states: str | Sequence[str] | None = None,
         variables: str | Sequence[str] | None = None,
+        bbox: Sequence[float] | None = None,
+        center: Sequence[float] | None = None,
+        radius_km: float | None = None,
+        nearest: int | None = None,
+        huc6: str | Sequence[str] | None = None,
+        huc8: str | Sequence[str] | None = None,
     ) -> pd.DataFrame:
         """Find sites by state and available water-quality variables."""
 
         sites = self.read_metadata(columns=SITE_COLUMNS)
-        return filter_sites(sites, states=states, variables=variables)
+        sites = filter_sites(sites, states=states, variables=variables)
+        if huc6 is not None or huc8 is not None:
+            lookup = self._access.read_huc_lookup()
+            sites = filter_huc(sites, lookup, huc6=huc6, huc8=huc8)
+        if bbox is not None:
+            sites = filter_bbox(sites, bbox)
+        if center is None and (radius_km is not None or nearest is not None):
+            raise ValueError("center is required with radius_km or nearest")
+        if center is not None and radius_km is None and nearest is None:
+            raise ValueError("center requires radius_km or nearest")
+        if radius_km is not None:
+            sites = filter_radius(sites, center=center, radius_km=radius_km)
+        if nearest is not None:
+            sites = select_nearest(sites, center=center, count=nearest)
+        return sites
 
     def read_water_quality(
         self,
