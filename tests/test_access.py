@@ -273,7 +273,7 @@ class StreamAccessTests(unittest.TestCase):
         expected = pd.DataFrame(
             {
                 "STREAM_ID": ["STREAM-gauge-1"],
-                "time": [pd.Timestamp("2020-01-01 00:00")],
+                "DateTime": [pd.Timestamp("2020-01-01 00:00")],
                 "APCP_surface": [1.5],
                 "TMP_2maboveground": [280.0],
             }
@@ -299,7 +299,7 @@ class StreamAccessTests(unittest.TestCase):
         call = dataset_mock.return_value.to_table.call_args
         self.assertEqual(
             call.kwargs["columns"],
-            ["STREAM_ID", "time", "APCP_surface", "TMP_2maboveground"],
+            ["STREAM_ID", "DateTime", "APCP_surface", "TMP_2maboveground"],
         )
         self.assertIsNotNone(call.kwargs["filter"])
 

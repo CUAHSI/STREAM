@@ -39,6 +39,7 @@ class DatasetPathTests(unittest.TestCase):
     def test_meteorology_variables_are_cataloged(self):
         self.assertIn("APCP_surface", METEOROLOGY_VARIABLES)
         self.assertIn("TMP_2maboveground", METEOROLOGY_VARIABLES)
+        self.assertEqual(TIME_COLUMNS["meteorology"], "DateTime")
 
     def test_land_cover_variables_and_time_column_are_cataloged(self):
         self.assertEqual(len(LAND_COVER_VARIABLES), 16)

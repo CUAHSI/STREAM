@@ -28,7 +28,7 @@ DATASETS: dict[str, str] = {
 # Only datasets with a time dimension are included here.
 TIME_COLUMNS: dict[str, str] = {
     "water_quality": "DateTime",
-    "meteorology": "time",
+    "meteorology": "DateTime",
     "land_cover": "DateTime",
     "anthropogenic": "DateTime",
     "streamflow": "DateTime",

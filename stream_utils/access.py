@@ -299,11 +299,11 @@ class StreamAccess:
 
         expression = ds.field("STREAM_ID").isin(site_ids)
         if start_time is not None:
-            expression &= ds.field("time") >= start_time.to_pydatetime()
+            expression &= ds.field("DateTime") >= start_time.to_pydatetime()
         if end_time is not None:
-            expression &= ds.field("time") <= end_time.to_pydatetime()
+            expression &= ds.field("DateTime") <= end_time.to_pydatetime()
 
-        columns = ["STREAM_ID", "time", *variables]
+        columns = ["STREAM_ID", "DateTime", *variables]
         filesystem = self._filesystem("meteorology")
         try:
             dataset = ds.dataset(
