@@ -13,6 +13,7 @@ SITE_COLUMNS = [
     "longitude_wgs84",
     "WQ_parameters",
     "streamflow",
+    "grabsamples",
 ]
 
 
