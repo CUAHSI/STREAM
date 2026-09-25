@@ -214,6 +214,7 @@ __marimo__/
 data/
 data/*
 cache/
+notebooks/tutorials/outputs/
 
 # pixi environments
 .pixi/*
