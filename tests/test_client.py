@@ -3,9 +3,9 @@ from unittest.mock import Mock
 
 import pandas as pd
 
-from stream_utils.catalog import dataset_path
-from stream_utils.client import StreamClient
-from stream_utils.sites import SITE_COLUMNS
+from streamwq._storage import dataset_path
+from streamwq.client import StreamClient
+from streamwq.sites import SITE_COLUMNS
 
 
 class StreamClientTests(unittest.TestCase):

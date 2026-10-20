@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from stream_utils.spatial import filter_bbox, filter_huc, filter_radius, select_nearest
+from streamwq.spatial import filter_bbox, filter_huc, filter_radius, select_nearest
 
 
 class FilterHucTests(unittest.TestCase):

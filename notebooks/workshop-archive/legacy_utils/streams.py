@@ -22,8 +22,8 @@ import threading
 import requests
 from shapely.geometry import shape, Point
 
-from stream_utils import S3hsclient as hsclient
-from stream_utils import leaflet_map
+from streamwq import S3hsclient as hsclient
+from streamwq import leaflet_map
 
 # Define mapping between interface labels and water quality variable names in the dataset
 water_quality_vars = {

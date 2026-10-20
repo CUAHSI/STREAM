@@ -1,11 +1,34 @@
-# STREAM Python utilities
+# streamwq Python interface
 
-This directory contains the reusable Python interface for the STREAM Parquet
-resource. Most researchers should begin with `StreamClient`, then compose its
-results with the spatial, temporal, joining, mapping, and export helpers.
+The public Arrow-first metadata API requires no client construction:
 
 ```python
-from stream_utils.client import StreamClient
+import streamwq as stream
+
+metadata = stream.get_metadata()
+site_ids = metadata.select(["STREAM_ID"]).slice(0, 2)
+selected = stream.get_metadata(site_ids)
+variables = stream.catalog.VARIABLES["water_quality"]
+```
+
+`get_metadata(site_ids=None, *, columns=None)` materializes an Arrow table
+without pandas or GeoPandas. It accepts an ID, a sequence of IDs, or a
+one-column `STREAM_ID` Arrow table; explicit empty selections raise `ValueError`.
+`catalog.DATASETS` is a tuple of names and `catalog.VARIABLES` is a read-only
+mapping to tuples of measurement variables. Empty variable tuples indicate
+schema-dependent fields, not columnless datasets. Storage paths and connection
+details are private. See the [project README](../README.md) for installation,
+selection details, and the runnable metadata/catalog example.
+
+## Legacy interface
+
+The modules below remain available under the renamed package while later
+migration tickets replace their pandas-based APIs. They require the full Pixi
+environment and are not imported by the module-level metadata/catalog API.
+`StreamClient` is not required or newly endorsed for ordinary access.
+
+```python
+from streamwq.client import StreamClient
 
 stream = StreamClient()
 sites = stream.find_sites(
@@ -17,7 +40,7 @@ sites = stream.find_sites(
 
 ## How the modules connect
 
-The client is the public entry point for finding and reading data. It delegates
+The legacy client is the entry point for the remaining readers. It delegates
 storage details to `StreamAccess`, while small focused modules perform filtering
 and analysis after data has been returned.
 
@@ -25,7 +48,7 @@ and analysis after data has been returned.
 flowchart TD
     U[Researcher] --> C[<code>StreamClient</code><br/><code>client.py</code>]
 
-    C --> CAT[Dataset catalog<br/><code>catalog.py</code>]
+    C --> CAT[Private dataset storage<br/><code>_storage.py</code>]
     C --> SITE[Availability filters<br/><code>sites.py</code>]
     C --> SPATIAL[Spatial filters<br/><code>spatial.py</code>]
     C --> ACCESS[Parquet reader<br/><code>access.py</code>]
@@ -67,15 +90,15 @@ flowchart LR
 Import the client with:
 
 ```python
-from stream_utils.client import StreamClient
+from streamwq.client import StreamClient
 
 stream = StreamClient()
 ```
 
 | Method | Purpose | Main dependency |
 |---|---|---|
-| `list_datasets()` | List the dataset names recognized by the package. | `catalog.DATASETS` |
-| `path(name)` | Return the HydroShare path for a named dataset. | `catalog.dataset_path()` |
+| `list_datasets()` | List the dataset names recognized by the legacy client. | Private storage registry |
+| `path(name)` | Legacy storage-path accessor; not part of the new catalog contract. | Private storage registry |
 | `read_metadata(columns=None)` | Read station metadata, optionally selecting columns. | `StreamAccess.read_metadata()` |
 | `find_sites(...)` | Filter stations by state, variable availability, streamflow, grab samples, bounding box, radius, nearest distance, HUC6, or HUC8. | `sites.py`, `spatial.py`, and the metadata/HUC readers |
 | `read_water_quality(...)` | Read selected continuous water-quality variables, stations, dates, and quality classes. | `StreamAccess.read_water_quality()` and `quality.py` |
@@ -125,7 +148,7 @@ within 100 km of a point.
 
 ### Time preparation
 
-Import these functions from `stream_utils.temporal`.
+Import these legacy functions from `streamwq.temporal`.
 
 | Function | Description |
 |---|---|
@@ -145,8 +168,8 @@ Import these functions from `stream_utils.temporal`.
 Example composition:
 
 ```python
-from stream_utils.joins import join_timeseries
-from stream_utils.temporal import resample_timeseries
+from streamwq.joins import join_timeseries
+from streamwq.temporal import resample_timeseries
 
 daily_quality = resample_timeseries(
     water_quality,
@@ -196,7 +219,7 @@ called directly by researchers.
 
 | Module | Responsibility |
 |---|---|
-| `catalog.py` | Resource identifier, Parquet paths, time columns, variable names, and quality-flag mappings. |
+| `_storage.py` | Private resource identifier, Parquet paths, time columns, and quality-flag mappings. |
 | `access.py` | Filtered reads from remote Parquet datasets and conversion to pandas or GeoPandas. |
 | `quality.py` | Convert user-friendly quality choices into source flag values. |
 | `S3hsclient.py` | Authenticate with HydroShare and provide its S3-compatible filesystem. |

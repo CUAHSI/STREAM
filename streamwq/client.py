@@ -4,10 +4,10 @@ from collections.abc import Sequence
 
 import pandas as pd
 
-from stream_utils.access import StreamAccess
-from stream_utils.catalog import DATASETS, dataset_path
-from stream_utils.sites import SITE_COLUMNS, filter_sites
-from stream_utils.spatial import filter_bbox, filter_huc, filter_radius, select_nearest
+from streamwq.access import StreamAccess
+from streamwq._storage import DATASETS, dataset_path
+from streamwq.sites import SITE_COLUMNS, filter_sites
+from streamwq.spatial import filter_bbox, filter_huc, filter_radius, select_nearest
 
 
 class StreamClient:

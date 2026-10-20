@@ -8,7 +8,7 @@ from typing import Any
 
 import pandas as pd
 
-from stream_utils.catalog import RESOURCE_ID
+from streamwq._storage import RESOURCE_ID
 
 
 def export_subset(
@@ -72,7 +72,7 @@ def export_subset(
 
 def _package_version() -> str | None:
     try:
-        return version("stream-utils")
+        return version("streamwq")
     except PackageNotFoundError:
         return None
 

@@ -13,7 +13,6 @@ from pathlib import Path
 import concurrent.futures
 
 import s3fs
-import xarray
 from tqdm import tqdm
 from hsclient import HydroShare, Resource
 
