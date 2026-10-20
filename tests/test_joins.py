@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from stream_utils.joins import join_timeseries
+from streamwq.joins import join_timeseries
 
 
 class JoinTimeseriesTests(unittest.TestCase):

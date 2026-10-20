@@ -1,6 +1,6 @@
 import unittest
 
-from stream_utils.quality import normalize_quality
+from streamwq.quality import normalize_quality
 
 
 class NormalizeQualityTests(unittest.TestCase):

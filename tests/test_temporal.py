@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from stream_utils.temporal import (
+from streamwq.temporal import (
     add_water_year,
     common_observation_period,
     filter_season,

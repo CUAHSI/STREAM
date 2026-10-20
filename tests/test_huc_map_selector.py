@@ -4,7 +4,7 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Polygon
 
-from stream_utils.huc_map_selector import (
+from streamwq.huc_map_selector import (
     fetch_huc_boundary,
     select_sites_in_boundary,
 )

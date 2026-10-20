@@ -2,7 +2,7 @@ import unittest
 
 import pandas as pd
 
-from stream_utils.sites import filter_sites
+from streamwq.sites import filter_sites
 
 
 class FilterSitesTests(unittest.TestCase):
