@@ -162,7 +162,9 @@ class S3HydroShare(HydroShare):
             print(f'Message: {response.text}')
             raise e
         
-        self.s3_key, self.s3_secret = response.json().values()
+        kv_dict = response.json()
+        self.s3_key = kv_dict.get('access_key')
+        self.s3_secret = kv_dict.get('secret_key')
         
     def resource(self, resource_id: str, validate: bool = True, use_cache: bool = True) -> S3Resource:
         """
