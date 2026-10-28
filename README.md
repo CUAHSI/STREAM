@@ -2,7 +2,7 @@
 
 Arrow-first Python access to the analysis-ready STREAM Parquet dataset on
 HydroShare. Import the package as `stream`: `import streamwq as stream`.
-Site metadata and dataset/variable discovery use the new module-level API.
+Site discovery, metadata, and dataset/variable access use the module-level API.
 The remaining observation, selection, and analysis modules are still being
 migrated and retain their existing pandas-based interfaces under `streamwq`.
 
@@ -76,6 +76,10 @@ metadata = stream.get_metadata()  # Materialized pyarrow.Table, all sites
 site_ids = metadata.select(["STREAM_ID"]).slice(0, 2)
 selected = stream.get_metadata(site_ids)
 print(selected.schema)
+
+# Find candidate sites and pass their IDs directly to metadata access.
+candidates = stream.get_sites(states="Virginia", variables=["WTemp_C", "DO_mgL"])
+candidate_metadata = stream.get_metadata(site_ids=candidates)
 ```
 
 Run the complete example with `pixi run python examples/metadata_catalog.py`.
@@ -97,6 +101,30 @@ repeated requested IDs do not duplicate rows, and unknown IDs do not add rows.
 An all-unknown selection returns a zero-row table with the selected schema.
 No ordering guarantee is added. Unknown-ID validation for observation access
 is a separate part of the migration.
+
+### Site discovery
+
+`get_sites(...)` returns a materialized `pyarrow.Table` with exactly one
+column, `STREAM_ID`, and no repeated IDs. Pass that table unchanged to
+`get_metadata(site_ids=...)`. Supported filters are `states`, `variables`,
+`streamflow`, `grab_variables`, `huc6`, `huc8`, `bbox`, `center`,
+`radius_km`, and `nearest`. Different filters narrow the selection together
+(AND); multiple values within one filter are alternatives (OR). For example,
+`variables=["WTemp_C", "DO_mgL"]` finds sites with either listed variable.
+
+The `bbox` order is `(west, south, east, north)` in WGS 84 degrees, with
+longitude values from -180 to 180 and latitude values from -90 to 90.
+`center` is `(longitude, latitude)` in WGS 84 degrees. A `center` must be
+paired with either a positive `radius_km` or a positive integer `nearest`;
+when both `radius_km` and `nearest` are supplied, nearest sites are selected
+from within the radius. Bounding-box and center/radius selections can be
+combined.
+
+Site discovery uses metadata availability fields to identify candidates. It
+does not check observations, and does not guarantee data for a later dataset,
+date range, or quality-filter request. Invalid selections raise a
+descriptive `ValueError`; a valid selection matching no sites also raises a
+`ValueError` with guidance to broaden or change the selection.
 
 ### Public catalog
 

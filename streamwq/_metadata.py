@@ -66,3 +66,19 @@ def get_metadata(
         return dataset.to_table(columns=columns, filter=expression)
     except Exception as error:
         raise RuntimeError(f"Unable to read STREAM metadata: {error}") from error
+
+
+def _get_huc_lookup() -> pa.Table:
+    """Read the small HUC lookup table as Arrow for site discovery."""
+    import pyarrow.dataset as ds
+
+    filesystem = _storage_provider().get_s3_filesystem()
+    if filesystem is None:
+        raise RuntimeError("S3 filesystem is required to read the STREAM HUC lookup")
+    try:
+        dataset = ds.dataset(
+            dataset_path("huc_lookup"), format="parquet", filesystem=filesystem
+        )
+        return dataset.to_table(columns=["STREAM_ID", "HUC6", "HUC8"])
+    except Exception as error:
+        raise RuntimeError(f"Unable to read STREAM HUC lookup: {error}") from error

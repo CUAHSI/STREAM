@@ -10,6 +10,7 @@ class CoreImportTests(unittest.TestCase):
             import sys
             import streamwq as stream
             assert stream.catalog.DATASETS
+            assert callable(stream.get_sites)
             for name in ("pandas", "geopandas", "xarray", "streamwq.client",
                          "streamwq.access", "streamwq.S3hsclient"):
                 assert name not in sys.modules, name
