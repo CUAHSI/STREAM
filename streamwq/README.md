@@ -9,6 +9,9 @@ metadata = stream.get_metadata()
 site_ids = metadata.select(["STREAM_ID"]).slice(0, 2)
 selected = stream.get_metadata(site_ids)
 variables = stream.catalog.VARIABLES["water_quality"]
+
+site_ids = stream.get_sites(states="Virginia", variables=["WTemp_C", "DO_mgL"])
+selected_site_metadata = stream.get_metadata(site_ids=site_ids)
 ```
 
 `get_metadata(site_ids=None, *, columns=None)` materializes an Arrow table
@@ -18,7 +21,16 @@ one-column `STREAM_ID` Arrow table; explicit empty selections raise `ValueError`
 mapping to tuples of measurement variables. Empty variable tuples indicate
 schema-dependent fields, not columnless datasets. Storage paths and connection
 details are private. See the [project README](../README.md) for installation,
-selection details, and the runnable metadata/catalog example.
+selection details, and the runnable discovery-to-metadata example.
+
+`get_sites(...)` returns a materialized Arrow table containing only unique
+`STREAM_ID` values. It supports metadata availability filters (`states`,
+`variables`, `streamflow`, and `grab_variables`), HUC filters (`huc6` and
+`huc8`), a WGS 84 bounding box (`bbox=(west, south, east, north)`), and a
+WGS 84 center (`center=(longitude, latitude)`) with `radius_km` or `nearest`.
+Different filters combine together; multiple values supplied to one filter
+are alternatives. Discovery is based on metadata and does not guarantee
+matching observations in a later dataset/date/quality request.
 
 ## Legacy interface
 
