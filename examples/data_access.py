@@ -19,10 +19,17 @@ def main() -> None:
         columns=["STREAM_ID", "DateTime", "Q_m3s", "Flag_Q_m3s"],
         quality="approved",
     )
+    grab_samples = stream.get_data(
+        "grab_samples",
+        site_ids=site_ids,
+        columns=["STREAM_ID", "DateTime", "SSC_mgL"],
+    )
     print("Water-quality observations:")
     print(water_quality)
     print("Streamflow observations:")
     print(streamflow)
+    print("Grab samples:")
+    print(grab_samples)
 
 
 if __name__ == "__main__":

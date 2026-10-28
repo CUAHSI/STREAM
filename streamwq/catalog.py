@@ -1,4 +1,8 @@
-"""Supported STREAM dataset names and measurement variables."""
+"""Supported STREAM dataset names and measurement variables.
+
+Non-measurement columns, including static catchment attributes, are discoverable
+from the schema returned by :func:`streamwq.get_data`.
+"""
 
 from collections.abc import Mapping as _Mapping
 from types import MappingProxyType as _MappingProxyType

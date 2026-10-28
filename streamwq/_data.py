@@ -1,4 +1,4 @@
-"""Arrow-native access to water-quality and streamflow observations."""
+"""Arrow-native access to STREAM tabular datasets."""
 
 from collections.abc import Sequence
 from datetime import date, datetime
@@ -8,11 +8,20 @@ import pyarrow as pa
 
 from streamwq import catalog
 from streamwq._metadata import _storage_provider, get_metadata
-from streamwq._storage import QUALITY_FLAG_COLUMNS, dataset_path
+from streamwq._storage import QUALITY_FLAG_COLUMNS, TIME_COLUMNS, dataset_path
 from streamwq.quality import normalize_quality
 
 
-_SUPPORTED_DATASETS = ("water_quality", "streamflow")
+_SUPPORTED_DATASETS = (
+    "water_quality",
+    "streamflow",
+    "static_catchment_characteristics",
+    "grab_samples",
+    "meteorology",
+    "land_cover",
+    "anthropogenic",
+)
+_QUALITY_FILTER_DATASETS = ("water_quality", "streamflow")
 
 
 def get_data(
@@ -24,18 +33,24 @@ def get_data(
     end: str | date | datetime | None = None,
     quality: str | Sequence[str] | None = None,
 ) -> pa.Table:
-    """Return selected water-quality or streamflow observations as Arrow.
+    """Return selected tabular STREAM data as a materialized Arrow table.
 
     Omitted ``columns`` selects every column in the Parquet schema. Explicit
     columns are returned exactly as requested. Date bounds are inclusive and
     timezone-naive; they are interpreted in the timestamp's stored time basis.
-    Quality filters apply to each selected measurement using its paired
-    quality flag; a missing flag column is an error. The output contains
-    quality flags only when they are part of the selected projection.
+    Date filters are supported only for datasets with a time column. Quality
+    filtering is supported only for water quality and streamflow.
     """
     dataset_name = _validate_dataset(dataset)
     selected_ids = _normalize_site_ids(site_ids)
     selected_columns = _normalize_columns(columns)
+    if dataset_name not in TIME_COLUMNS and (start is not None or end is not None):
+        raise ValueError(
+            f"Date filtering is not supported for {dataset_name}; "
+            "it has no time column"
+        )
+    if dataset_name not in _QUALITY_FILTER_DATASETS and quality is not None:
+        raise ValueError(f"Quality filtering is not supported for {dataset_name}")
     start_time = _parse_date(start, "start")
     end_time = _parse_date(end, "end")
     if start_time is not None and end_time is not None and start_time > end_time:
@@ -67,7 +82,10 @@ def get_data(
         ) from error
 
     schema_names = observation_dataset.schema.names
-    required = {"STREAM_ID", "DateTime"}
+    time_column = TIME_COLUMNS.get(dataset_name)
+    required = {"STREAM_ID"}
+    if time_column is not None:
+        required.add(time_column)
     missing_required = sorted(required - set(schema_names))
     if missing_required:
         raise RuntimeError(
@@ -87,9 +105,9 @@ def get_data(
 
     expression = ds.field("STREAM_ID").isin(selected_ids)
     if start_time is not None:
-        expression &= ds.field("DateTime") >= start_time
+        expression &= ds.field(time_column) >= start_time
     if end_time is not None:
-        expression &= ds.field("DateTime") <= end_time
+        expression &= ds.field(time_column) <= end_time
 
     if quality_flags is not None:
         selected_measurements = [
@@ -122,16 +140,22 @@ def get_data(
 def _validate_dataset(dataset: str | None) -> str:
     if not isinstance(dataset, str) or not dataset.strip():
         raise ValueError(
-            "dataset is required; choose 'water_quality' or 'streamflow'"
+            "dataset is required; choose a name from catalog.DATASETS"
         )
     dataset = dataset.strip()
     if dataset not in catalog.DATASETS:
         choices = ", ".join(catalog.DATASETS)
         raise ValueError(f"Unknown dataset {dataset!r}. Available datasets: {choices}")
     if dataset not in _SUPPORTED_DATASETS:
-        choices = ", ".join(_SUPPORTED_DATASETS)
+        if dataset == "metadata":
+            raise ValueError("metadata is not read by get_data; use get_metadata")
+        if dataset == "watersheds":
+            raise ValueError(
+                "watersheds are not tabular observations; use the dedicated "
+                "watershed reader"
+            )
         raise ValueError(
-            f"get_data currently supports {choices}; {dataset!r} is not supported"
+            f"{dataset!r} is not a supported tabular observation dataset"
         )
     return dataset
 

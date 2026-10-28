@@ -19,6 +19,14 @@ from streamwq._storage import dataset_path
 
 
 class GetDataTests(unittest.TestCase):
+    SUPPORTING_DATA = {
+        "static_catchment_characteristics": ("basin_area_km2", None, 12.5),
+        "grab_samples": ("SSC_mgL", datetime(2020, 1, 1), 4.2),
+        "meteorology": ("APCP_surface", datetime(2020, 1, 1), 1.5),
+        "land_cover": ("Cultivated Crops", datetime(2020, 1, 1), 0.25),
+        "anthropogenic": ("so4_tw", datetime(2020, 1, 1), 6.7),
+    }
+
     def setUp(self):
         _storage_provider.cache_clear()
         self.addCleanup(_storage_provider.cache_clear)
@@ -53,6 +61,19 @@ class GetDataTests(unittest.TestCase):
         self._write_file("metadata", self.metadata)
         self._write_partitioned_dataset("water_quality", self.water_quality)
         self._write_partitioned_dataset("streamflow", self.streamflow)
+        self.supporting_tables = {}
+        for dataset, (variable, timestamp, value) in self.SUPPORTING_DATA.items():
+            if timestamp is not None:
+                columns = {
+                    "STREAM_ID": ["site-1", "site-1"],
+                    "DateTime": [timestamp, datetime(2021, 1, 1)],
+                    variable: [value, value + 1],
+                }
+            else:
+                columns = {"STREAM_ID": ["site-1"], variable: [value]}
+            table = pa.table(columns)
+            self.supporting_tables[dataset] = table
+            self._write_file(dataset, table)
         filesystem = fs.SubTreeFileSystem(self.directory.name, fs.LocalFileSystem())
         storage_provider = types.SimpleNamespace(
             get_s3_filesystem=lambda: filesystem
@@ -103,6 +124,89 @@ class GetDataTests(unittest.TestCase):
             {"STREAM_ID", "DateTime", "Q_m3s", "Flag_Q_m3s"},
         )
         self.assertEqual(result.num_rows, 2)
+
+    def test_reads_supporting_datasets_as_arrow_with_exact_projection(self):
+        for dataset, (variable, timestamp, value) in self.SUPPORTING_DATA.items():
+            with self.subTest(dataset=dataset):
+                columns = ["STREAM_ID", variable]
+                if timestamp is not None:
+                    columns.insert(1, "DateTime")
+
+                result = stream.get_data(
+                    dataset,
+                    site_ids="site-1",
+                    columns=columns,
+                    start="2020-01-01" if timestamp is not None else None,
+                    end="2020-01-01" if timestamp is not None else None,
+                )
+
+                self.assertIsInstance(result, pa.Table)
+                self.assertEqual(result.column_names, columns)
+                self.assertEqual(result.column(variable).to_pylist(), [value])
+                self.assertEqual(
+                    result.schema,
+                    self.supporting_tables[dataset].select(columns).schema,
+                )
+
+    def test_supporting_datasets_accept_all_site_selection_forms(self):
+        selections = [
+            "site-1",
+            ["site-1"],
+            pa.table({"STREAM_ID": ["site-1"]}),
+        ]
+        for dataset, (variable, timestamp, value) in self.SUPPORTING_DATA.items():
+            columns = ["STREAM_ID", variable]
+            if timestamp is not None:
+                columns.insert(1, "DateTime")
+            for site_ids in selections:
+                with self.subTest(dataset=dataset, site_ids=site_ids):
+                    result = stream.get_data(
+                        dataset,
+                        site_ids=site_ids,
+                        columns=columns,
+                    )
+                    expected_values = [value] if timestamp is None else [
+                        value,
+                        value + 1,
+                    ]
+                    self.assertEqual(result.column(variable).to_pylist(), expected_values)
+
+    def test_supporting_datasets_preserve_schema_for_empty_and_default_results(self):
+        for dataset in self.SUPPORTING_DATA:
+            with self.subTest(dataset=dataset):
+                result = stream.get_data(dataset, site_ids="site-2")
+
+                self.assertEqual(result.num_rows, 0)
+                self.assertEqual(result.schema, self.supporting_tables[dataset].schema)
+
+    def test_supporting_datasets_reject_unknown_columns_and_any_unknown_site_id(self):
+        for dataset in self.SUPPORTING_DATA:
+            with self.subTest(dataset=dataset, invalid="column"):
+                with self.assertRaisesRegex(ValueError, "Unknown column"):
+                    stream.get_data(
+                        dataset,
+                        site_ids="site-1",
+                        columns=["not-a-column"],
+                    )
+            with self.subTest(dataset=dataset, invalid="site"):
+                with self.assertRaisesRegex(ValueError, "Unknown site ID.*not-a-site"):
+                    stream.get_data(
+                        dataset,
+                        site_ids=["site-1", "not-a-site"],
+                    )
+
+    def test_supporting_datasets_reject_unsupported_shared_filters(self):
+        for dataset in self.SUPPORTING_DATA:
+            with self.subTest(dataset=dataset):
+                with self.assertRaisesRegex(ValueError, "Quality filtering"):
+                    stream.get_data(dataset, site_ids="site-1", quality="approved")
+
+        with self.assertRaisesRegex(ValueError, "Date filtering"):
+            stream.get_data(
+                "static_catchment_characteristics",
+                site_ids="site-1",
+                start="2020-01-01",
+            )
 
     def test_accepts_sequence_and_one_column_arrow_site_selections(self):
         selections = [
@@ -183,7 +287,8 @@ class GetDataTests(unittest.TestCase):
     def test_rejects_unknown_datasets_columns_and_invalid_date_ranges(self):
         invalid_requests = [
             ({"dataset": "not-a-dataset"}, "Unknown dataset"),
-            ({"dataset": "meteorology"}, "supports water_quality, streamflow"),
+            ({"dataset": "metadata"}, "use get_metadata"),
+            ({"dataset": "watersheds"}, "not tabular observations"),
             (
                 {"dataset": "water_quality", "columns": ["not-a-column"]},
                 "Unknown column",
@@ -241,6 +346,7 @@ class GetDataTests(unittest.TestCase):
 
         self.assertIn("Water-quality observations:", output.getvalue())
         self.assertIn("Streamflow observations:", output.getvalue())
+        self.assertIn("Grab samples:", output.getvalue())
 
 
 if __name__ == "__main__":

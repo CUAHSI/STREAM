@@ -1,7 +1,7 @@
 # streamwq Python interface
 
-The public Arrow-first site, metadata, and water-quality/streamflow APIs require
-no client construction:
+The public Arrow-first site, metadata, and tabular data APIs require no client
+construction:
 
 ```python
 import streamwq as stream
@@ -18,6 +18,11 @@ observations = stream.get_data(
     site_ids=site_ids,
     columns=["STREAM_ID", "DateTime", "WTemp_C", "Flag_WTemp_C"],
     quality="approved",
+)
+grab_samples = stream.get_data(
+    "grab_samples",
+    site_ids=site_ids,
+    columns=["STREAM_ID", "DateTime", "SSC_mgL"],
 )
 ```
 
@@ -40,15 +45,20 @@ are alternatives. Discovery is based on metadata and does not guarantee
 matching observations in a later dataset/date/quality request.
 
 `get_data(dataset, site_ids=None, *, columns=None, start=None, end=None,
-quality=None)` currently supports `water_quality` and `streamflow`. It validates
-all site IDs against metadata before reading observations, accepts the
-one-column table from `get_sites` directly, and returns a materialized Arrow
-table. Omitted `columns` selects the physical dataset schema; an explicit
-projection is returned exactly as requested. Inclusive, timezone-naive date
-bounds and quality filtering are described in the project README. The
-Parquet schema, visible on every returned table (including empty results),
-defines selectable columns; `catalog.VARIABLES` remains a measurement-variable
-list rather than a full schema.
+quality=None)` supports `water_quality`, `streamflow`,
+`static_catchment_characteristics`, `grab_samples`, `meteorology`, `land_cover`,
+and `anthropogenic`. It validates all site IDs against metadata before reading
+data, accepts the one-column table from `get_sites` directly, and returns a
+materialized Arrow table. Omitted `columns` selects the physical dataset
+schema; an explicit projection is returned exactly as requested. Inclusive,
+timezone-naive date bounds are supported for time-series datasets; quality
+filtering is supported only for water quality and streamflow. Static
+catchment attributes do not support date filters. Metadata and watershed
+geometry remain on their dedicated readers. The Parquet schema, visible on
+every returned table (including empty results), defines selectable columns;
+`catalog.VARIABLES` remains a measurement-variable list rather than a full
+schema. See the [project README](../README.md) for per-dataset filters and
+column details.
 
 ## Legacy interface
 
