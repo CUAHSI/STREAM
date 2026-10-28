@@ -212,6 +212,10 @@ __marimo__/
 
 # Data
 data/
-data/*# pixi environments
+data/*
+cache/
+notebooks/tutorials/outputs/
+
+# pixi environments
 .pixi/*
 !.pixi/config.toml
