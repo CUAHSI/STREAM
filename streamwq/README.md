@@ -1,6 +1,7 @@
 # streamwq Python interface
 
-The public Arrow-first metadata API requires no client construction:
+The public Arrow-first site, metadata, and water-quality/streamflow APIs require
+no client construction:
 
 ```python
 import streamwq as stream
@@ -12,6 +13,12 @@ variables = stream.catalog.VARIABLES["water_quality"]
 
 site_ids = stream.get_sites(states="Virginia", variables=["WTemp_C", "DO_mgL"])
 selected_site_metadata = stream.get_metadata(site_ids=site_ids)
+observations = stream.get_data(
+    "water_quality",
+    site_ids=site_ids,
+    columns=["STREAM_ID", "DateTime", "WTemp_C", "Flag_WTemp_C"],
+    quality="approved",
+)
 ```
 
 `get_metadata(site_ids=None, *, columns=None)` materializes an Arrow table
@@ -21,7 +28,7 @@ one-column `STREAM_ID` Arrow table; explicit empty selections raise `ValueError`
 mapping to tuples of measurement variables. Empty variable tuples indicate
 schema-dependent fields, not columnless datasets. Storage paths and connection
 details are private. See the [project README](../README.md) for installation,
-selection details, and the runnable discovery-to-metadata example.
+selection details, and runnable access examples.
 
 `get_sites(...)` returns a materialized Arrow table containing only unique
 `STREAM_ID` values. It supports metadata availability filters (`states`,
@@ -32,11 +39,23 @@ Different filters combine together; multiple values supplied to one filter
 are alternatives. Discovery is based on metadata and does not guarantee
 matching observations in a later dataset/date/quality request.
 
+`get_data(dataset, site_ids=None, *, columns=None, start=None, end=None,
+quality=None)` currently supports `water_quality` and `streamflow`. It validates
+all site IDs against metadata before reading observations, accepts the
+one-column table from `get_sites` directly, and returns a materialized Arrow
+table. Omitted `columns` selects the physical dataset schema; an explicit
+projection is returned exactly as requested. Inclusive, timezone-naive date
+bounds and quality filtering are described in the project README. The
+Parquet schema, visible on every returned table (including empty results),
+defines selectable columns; `catalog.VARIABLES` remains a measurement-variable
+list rather than a full schema.
+
 ## Legacy interface
 
 The modules below remain available under the renamed package while later
 migration tickets replace their pandas-based APIs. They require the full Pixi
-environment and are not imported by the module-level metadata/catalog API.
+environment and are not imported by the module-level site, metadata, or data
+API.
 `StreamClient` is not required or newly endorsed for ordinary access.
 
 ```python
