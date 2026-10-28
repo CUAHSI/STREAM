@@ -11,6 +11,7 @@ class CoreImportTests(unittest.TestCase):
             import streamwq as stream
             assert stream.catalog.DATASETS
             assert callable(stream.get_sites)
+            assert callable(stream.get_data)
             for name in ("pandas", "geopandas", "xarray", "streamwq.client",
                          "streamwq.access", "streamwq.S3hsclient"):
                 assert name not in sys.modules, name
@@ -20,10 +21,11 @@ class CoreImportTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_metadata_and_catalog_work_without_dataframe_dependencies(self):
+    def test_module_level_access_works_without_dataframe_dependencies(self):
         script = textwrap.dedent('''
             import importlib.abc
             import sys
+            from datetime import datetime
 
             class BlockDataframes(importlib.abc.MetaPathFinder):
                 def find_spec(self, fullname, path=None, target=None):
@@ -37,6 +39,7 @@ class CoreImportTests(unittest.TestCase):
             assert "streamwq.access" not in sys.modules
             assert "streamwq.S3hsclient" not in sys.modules
             assert stream.catalog.VARIABLES["streamflow"] == ("Q_m3s",)
+            assert callable(stream.get_data)
 
             import tempfile
             from pathlib import Path
@@ -44,8 +47,8 @@ class CoreImportTests(unittest.TestCase):
             import pyarrow as pa
             import pyarrow.fs as fs
             import pyarrow.parquet as pq
-            from streamwq._storage import dataset_path
             from streamwq.S3hsclient import S3HydroShare
+            from streamwq._storage import dataset_path
 
             with tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / dataset_path("metadata")
@@ -55,7 +58,25 @@ class CoreImportTests(unittest.TestCase):
                 with patch.object(S3HydroShare, "get_s3_filesystem", return_value=filesystem):
                     with patch.object(S3HydroShare, "__init__", return_value=None):
                         result = stream.get_metadata("STREAM-gauge-1")
+                        data_path = Path(directory) / dataset_path("streamflow")
+                        data_path.mkdir(parents=True)
+                        pq.write_to_dataset(
+                            pa.table({
+                                "STREAM_ID": ["STREAM-gauge-1"],
+                                "DateTime": [datetime(2020, 1, 1)],
+                                "Q_m3s": [2.5],
+                                "Flag_Q_m3s": ["A"],
+                            }),
+                            root_path=data_path,
+                            partition_cols=["STREAM_ID"],
+                        )
+                        observations = stream.get_data(
+                            "streamflow",
+                            site_ids="STREAM-gauge-1",
+                            columns=["Q_m3s"],
+                        )
                 assert result.to_pylist() == [{"STREAM_ID": "STREAM-gauge-1"}]
+                assert observations.column("Q_m3s").to_pylist() == [2.5]
             assert "pandas" not in sys.modules
             assert "geopandas" not in sys.modules
         ''')
