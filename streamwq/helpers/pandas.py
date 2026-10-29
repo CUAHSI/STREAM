@@ -47,13 +47,8 @@ def add_water_year(
     if not isinstance(output_column, str) or not output_column.strip():
         raise ValueError("output_column must be a non-empty string")
 
-    result = data.copy()
-    timestamps = pd.to_datetime(result[time_column], errors="coerce")
-    invalid = result[time_column].notna() & timestamps.isna()
-    if invalid.any():
-        raise ValueError(f"Column {time_column!r} contains invalid timestamps")
-
-    result[time_column] = timestamps
+    result = _with_validated_timestamps(data, time_column)
+    timestamps = result[time_column]
     years = timestamps.dt.year.astype("Int64")
     if start_month == 1:
         result[output_column] = years
@@ -80,16 +75,9 @@ def filter_season(
     season_name = season.strip().lower()
     if season_name not in METEOROLOGICAL_SEASONS:
         raise ValueError("season must be winter, spring, summer, or fall")
-    if time_column not in data.columns:
-        raise ValueError(f"Data is missing time column {time_column!r}")
 
-    result = data.copy()
-    timestamps = pd.to_datetime(result[time_column], errors="coerce")
-    invalid = result[time_column].notna() & timestamps.isna()
-    if invalid.any():
-        raise ValueError(f"Column {time_column!r} contains invalid timestamps")
-
-    result[time_column] = timestamps
+    result = _with_validated_timestamps(data, time_column)
+    timestamps = result[time_column]
     months = METEOROLOGICAL_SEASONS[season_name]
     matches = timestamps.dt.month.isin(months)
     return result.loc[matches].reset_index(drop=True)
