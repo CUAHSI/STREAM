@@ -5328,7 +5328,7 @@ packages:
 - pypi: ./
   name: streamwq
   version: 0.1.0
-  sha256: 95102a0b662f9a97ec31724403d27d0a2a23d32a28e43a70a311c33879df3d40
+  sha256: a424e121dba68eaa4c661a83ef4e722d03ccdbe9f12e5993ba3053a780f57a99
   requires_dist:
   - pyarrow>=25.0.0,<26
   - s3fs>=2026.6.0,<2027
