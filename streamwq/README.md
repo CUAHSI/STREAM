@@ -30,6 +30,16 @@ schema-dependent fields, not columnless datasets. Storage paths and connection
 details are private. See the [project README](../README.md) for installation,
 selection details, and runnable access examples.
 
+`get_watersheds(site_ids=...)` returns a materialized Arrow table with GeoParquet
+geometry metadata. It accepts a single ID, a sequence, or a one-column
+`STREAM_ID` Arrow table; unknown IDs are filtered out. Core retrieval does not
+require pandas or GeoPandas. To convert the returned WKB geometry into a
+GeoDataFrame with its coordinate reference system restored, install the
+optional dependency with `pip install "streamwq[geopandas]"` and call
+`stream.helpers.to_geopandas(table)`. See
+[`examples/watershed_access.py`](../examples/watershed_access.py) for a complete
+retrieval-and-conversion example.
+
 `get_sites(...)` returns a materialized Arrow table containing only unique
 `STREAM_ID` values. It supports metadata availability filters (`states`,
 `variables`, `streamflow`, and `grab_variables`), HUC filters (`huc6` and
