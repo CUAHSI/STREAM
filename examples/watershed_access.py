@@ -3,14 +3,15 @@
 import streamwq as stream
 
 
-def main(site_ids: str | list[str]) -> None:
+def main(site_ids: str | list[str], *, convert: bool = False) -> None:
     watersheds = stream.get_watersheds(site_ids=site_ids)
     print("Watersheds as Arrow:")
     print(watersheds)
 
-    geo_data = stream.helpers.to_geopandas(watersheds)
-    print("Watersheds as GeoPandas:")
-    print(geo_data)
+    if convert:
+        geo_data = stream.helpers.to_geopandas(watersheds)
+        print("Watersheds as GeoPandas:")
+        print(geo_data)
 
 
 if __name__ == "__main__":

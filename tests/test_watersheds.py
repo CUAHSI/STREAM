@@ -70,25 +70,28 @@ def _polygon_wkb(coordinates):
 
 class GetWatershedsTests(unittest.TestCase):
     def setUp(self):
+        from pyproj import CRS
+
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         geometry_metadata = {
-            "version": "1.1.0",
+            "version": "1.0.0",
+            "creator": {"library": "geopandas", "version": "1.1.2"},
             "primary_column": "geometry",
             "columns": {
                 "geometry": {
                     "encoding": "WKB",
-                    "geometry_types": ["Polygon"],
-                    "crs": None,
+                    "geometry_types": ["MultiPolygon", "Polygon"],
+                    "crs": CRS.from_epsg(5070).to_json_dict(),
                 }
             },
         }
         coordinates = [
-            (-78.0, 38.0),
-            (-77.0, 38.0),
-            (-77.0, 39.0),
-            (-78.0, 39.0),
-            (-78.0, 38.0),
+            (-1000000.0, 2000000.0),
+            (-900000.0, 2000000.0),
+            (-900000.0, 2100000.0),
+            (-1000000.0, 2100000.0),
+            (-1000000.0, 2000000.0),
         ]
         schema = pa.schema(
             [
@@ -172,27 +175,23 @@ class GetWatershedsTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "site_ids"):
                     stream.get_watersheds(site_ids)
 
-    def test_geoarrow_conversion_restores_geometry_and_default_crs(self):
-        result = stream.helpers.to_geopandas(self.watersheds.slice(0, 1))
+    def test_geoarrow_conversion_restores_default_crs_for_null_metadata(self):
+        result = stream.helpers.to_geopandas(_geoparquet_table(None))
 
         self.assertEqual(result.geometry.name, "geometry")
         self.assertEqual(result.geometry.iloc[0].geom_type, "Polygon")
-        self.assertEqual(result.geometry.iloc[0].bounds, (-78.0, 38.0, -77.0, 39.0))
         self.assertEqual(result.crs.to_string(), "OGC:CRS84")
         self.assertEqual(result.crs.axis_info[0].abbrev, "Lon")
         self.assertEqual(result["STREAM_ID"].tolist(), ["site-1"])
 
-    def test_geoarrow_conversion_restores_crs_from_projjson_metadata(self):
-        from pyproj import CRS
+    def test_geoarrow_conversion_restores_source_geometry_and_crs(self):
+        result = stream.helpers.to_geopandas(self.watersheds.slice(0, 1))
 
-        geo = json.loads(self.watersheds.schema.metadata[b"geo"])
-        geo["columns"]["geometry"]["crs"] = CRS.from_epsg(5070).to_json_dict()
-        table = self.watersheds.replace_schema_metadata(
-            {b"geo": json.dumps(geo).encode()}
+        self.assertEqual(result.geometry.iloc[0].geom_type, "Polygon")
+        self.assertEqual(
+            result.geometry.iloc[0].bounds,
+            (-1000000.0, 2000000.0, -900000.0, 2100000.0),
         )
-
-        result = stream.helpers.to_geopandas(table)
-
         self.assertEqual(result.crs.to_epsg(), 5070)
 
     def test_geoarrow_conversion_rejects_missing_or_malformed_metadata(self):
@@ -253,15 +252,29 @@ class GetWatershedsTests(unittest.TestCase):
     def test_documented_watershed_example_uses_arrow_before_conversion(self):
         path = Path(__file__).resolve().parents[1] / "examples" / "watershed_access.py"
         namespace = runpy.run_path(str(path))
-        output = io.StringIO()
+        arrow_output = io.StringIO()
         with (
             patch.object(stream, "get_watersheds", return_value=self.watersheds) as read,
             patch.object(stream.helpers, "to_geopandas", return_value="GeoDataFrame") as convert,
-            contextlib.redirect_stdout(output),
+            contextlib.redirect_stdout(arrow_output),
         ):
             namespace["main"]("site-1")
 
         read.assert_called_once_with(site_ids="site-1")
+        convert.assert_not_called()
+        self.assertIn("Watersheds as Arrow:", arrow_output.getvalue())
+        self.assertNotIn("Watersheds as GeoPandas:", arrow_output.getvalue())
+
+        output = io.StringIO()
+        with (
+            patch.object(stream, "get_watersheds", return_value=self.watersheds),
+            patch.object(
+                stream.helpers, "to_geopandas", return_value="GeoDataFrame"
+            ) as convert,
+            contextlib.redirect_stdout(output),
+        ):
+            namespace["main"]("site-1", convert=True)
+
         convert.assert_called_once_with(self.watersheds)
         self.assertIn("Watersheds as Arrow:", output.getvalue())
         self.assertIn("Watersheds as GeoPandas:", output.getvalue())
