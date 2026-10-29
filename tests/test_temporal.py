@@ -1,8 +1,9 @@
 import unittest
 
 import pandas as pd
+import pyarrow as pa
 
-from streamwq.temporal import (
+from streamwq.helpers.pandas import (
     add_water_year,
     common_observation_period,
     filter_season,
@@ -12,6 +13,21 @@ from streamwq.temporal import (
 
 
 class AddWaterYearTests(unittest.TestCase):
+    def test_arrow_table_can_be_converted_and_analyzed(self):
+        table = pa.table(
+            {
+                "STREAM_ID": ["site-1", "site-1"],
+                "DateTime": ["2020-09-30", "2020-10-01"],
+                "Q_m3s": [2.5, 3.0],
+            }
+        )
+
+        observations = table.to_pandas()
+        result = add_water_year(observations)
+
+        self.assertEqual(result["water_year"].tolist(), [2020, 2021])
+        self.assertEqual(result["Q_m3s"].tolist(), [2.5, 3.0])
+
     def test_uses_october_start_by_default(self):
         data = pd.DataFrame(
             {"DateTime": ["2020-09-30 23:00", "2020-10-01 00:00"]}

@@ -1,4 +1,4 @@
-"""Optional conversions and analysis helpers for STREAM results."""
+"""Optional GeoParquet conversion helpers for STREAM results."""
 
 from __future__ import annotations
 

@@ -64,6 +64,38 @@ Parquet schema, visible on every returned table (including empty results),
 defines selectable columns; `catalog.VARIABLES` remains a measurement-variable
 list rather than a full schema.
 
+## Optional pandas analysis
+
+Core access returns Arrow tables and does not require pandas. Install
+`streamwq[pandas]` to use the optional temporal analysis helpers:
+
+```shell
+pip install "streamwq[pandas]"
+```
+
+Convert an Arrow table with its native `to_pandas()` method, then pass the
+resulting DataFrame to a helper. This in-memory fixture runs without reading
+observations from a remote source:
+
+```python
+import pyarrow as pa
+
+from streamwq.helpers.pandas import add_water_year, summarize_observation_period
+
+table = pa.table(
+    {
+        "STREAM_ID": ["site-1", "site-1"],
+        "DateTime": ["2020-09-30", "2020-10-01"],
+        "Q_m3s": [2.5, 3.0],
+    }
+)
+observations = table.to_pandas()
+with_water_year = add_water_year(observations)
+periods = summarize_observation_period(with_water_year)
+```
+
+The `streamwq.temporal` import path remains available for existing code.
+
 ## Legacy interface
 
 The modules below remain available under the renamed package while later
@@ -193,7 +225,9 @@ within 100 km of a point.
 
 ### Time preparation
 
-Import these legacy functions from `streamwq.temporal`.
+Import these optional pandas helpers from `streamwq.helpers.pandas`. Install
+`streamwq[pandas]` to use them; Arrow tables can be converted with their native
+`to_pandas()` method.
 
 | Function | Description |
 |---|---|
@@ -214,7 +248,7 @@ Example composition:
 
 ```python
 from streamwq.joins import join_timeseries
-from streamwq.temporal import resample_timeseries
+from streamwq.helpers.pandas import resample_timeseries
 
 daily_quality = resample_timeseries(
     water_quality,
