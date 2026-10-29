@@ -12,6 +12,8 @@ class CoreImportTests(unittest.TestCase):
             assert stream.catalog.DATASETS
             assert callable(stream.get_sites)
             assert callable(stream.get_data)
+            assert callable(stream.get_watersheds)
+            assert callable(stream.helpers.to_geopandas)
             for name in ("pandas", "geopandas", "xarray", "streamwq.client",
                          "streamwq.access", "streamwq.S3hsclient"):
                 assert name not in sys.modules, name
@@ -44,6 +46,7 @@ class CoreImportTests(unittest.TestCase):
             import tempfile
             from pathlib import Path
             from unittest.mock import patch
+            import json
             import pyarrow as pa
             import pyarrow.fs as fs
             import pyarrow.parquet as pq
@@ -54,10 +57,32 @@ class CoreImportTests(unittest.TestCase):
                 path = Path(directory) / dataset_path("metadata")
                 path.parent.mkdir(parents=True)
                 pq.write_table(pa.table({"STREAM_ID": ["STREAM-gauge-1"]}), path)
+                watershed_path = Path(directory) / dataset_path("watersheds")
+                watershed_path.parent.mkdir(parents=True, exist_ok=True)
+                watershed_table = pa.table({
+                    "STREAM_ID": ["STREAM-gauge-1"],
+                    "COMID": [101],
+                    "area_km2": [1.5],
+                    "geometry": [b"wkb"],
+                }).replace_schema_metadata({
+                    b"geo": json.dumps({
+                        "version": "1.1.0",
+                        "primary_column": "geometry",
+                        "columns": {"geometry": {
+                            "encoding": "WKB",
+                            "geometry_types": ["Polygon"],
+                            "crs": None,
+                        }},
+                    }).encode()
+                })
+                pq.write_table(watershed_table, watershed_path)
                 filesystem = fs.SubTreeFileSystem(directory, fs.LocalFileSystem())
                 with patch.object(S3HydroShare, "get_s3_filesystem", return_value=filesystem):
-                    with patch.object(S3HydroShare, "__init__", return_value=None):
+                    with patch.object(
+                        S3HydroShare, "__init__", return_value=None
+                    ) as initialize_provider:
                         result = stream.get_metadata("STREAM-gauge-1")
+                        watersheds = stream.get_watersheds("STREAM-gauge-1")
                         data_path = Path(directory) / dataset_path("streamflow")
                         data_path.mkdir(parents=True)
                         pq.write_to_dataset(
@@ -75,7 +100,9 @@ class CoreImportTests(unittest.TestCase):
                             site_ids="STREAM-gauge-1",
                             columns=["Q_m3s"],
                         )
+                assert initialize_provider.call_count == 1
                 assert result.to_pylist() == [{"STREAM_ID": "STREAM-gauge-1"}]
+                assert watersheds.column("STREAM_ID").to_pylist() == ["STREAM-gauge-1"]
                 assert observations.column("Q_m3s").to_pylist() == [2.5]
             assert "pandas" not in sys.modules
             assert "geopandas" not in sys.modules

@@ -19,6 +19,7 @@ class InstallationTests(unittest.TestCase):
 
         self.assertIn("pyarrow<26,>=25.0.0", requirements)
         self.assertIn('pandas; extra == "pandas"', requirements)
+        self.assertIn('geopandas<2,>=1.1.4; extra == "geopandas"', requirements)
         required = [item for item in requirements if "extra ==" not in item]
         for name in ["pandas", "geopandas", "xarray", "pyright", "build"]:
             self.assertFalse(any(item.startswith(name) for item in required), name)

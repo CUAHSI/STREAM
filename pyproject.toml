@@ -12,6 +12,7 @@ dependencies = [
 
 [project.optional-dependencies]
 pandas = ["pandas"]
+geopandas = ["geopandas>=1.1.4,<2"]
 
 [build-system]
 requires = ["setuptools>=64"]
@@ -29,7 +30,7 @@ version = "0.1.0"
 [tool.pixi.tasks]
 start = "jupyter lab"
 test = "python -m unittest discover -s tests"
-typecheck = "pyright streamwq/__init__.py streamwq/_metadata.py streamwq/_discovery.py streamwq/_data.py streamwq/catalog.py"
+typecheck = "pyright streamwq/__init__.py streamwq/_metadata.py streamwq/_discovery.py streamwq/_data.py streamwq/_site_ids.py streamwq/_watersheds.py streamwq/helpers.py streamwq/catalog.py"
 
 [tool.pixi.dependencies]
 python = ">=3.14.7,<3.15"
