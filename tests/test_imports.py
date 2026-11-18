@@ -15,7 +15,8 @@ class CoreImportTests(unittest.TestCase):
             assert callable(stream.get_watersheds)
             assert callable(stream.helpers.to_geopandas)
             for name in ("pandas", "geopandas", "xarray", "streamwq.client",
-                         "streamwq.access", "streamwq.S3hsclient"):
+                         "streamwq.access", "streamwq.S3hsclient",
+                         "streamwq.helpers.pandas"):
                 assert name not in sys.modules, name
         ''')
         result = subprocess.run(
@@ -104,8 +105,14 @@ class CoreImportTests(unittest.TestCase):
                 assert result.to_pylist() == [{"STREAM_ID": "STREAM-gauge-1"}]
                 assert watersheds.column("STREAM_ID").to_pylist() == ["STREAM-gauge-1"]
                 assert observations.column("Q_m3s").to_pylist() == [2.5]
-            assert "pandas" not in sys.modules
-            assert "geopandas" not in sys.modules
+                try:
+                    import streamwq.helpers.pandas
+                except ImportError as error:
+                    assert "streamwq[pandas]" in str(error), error
+                else:
+                    raise AssertionError("pandas helpers imported without pandas")
+                assert "pandas" not in sys.modules
+                assert "geopandas" not in sys.modules
         ''')
         result = subprocess.run(
             [sys.executable, "-W", "ignore::DeprecationWarning", "-c", script],
