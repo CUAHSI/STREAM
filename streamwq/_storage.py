@@ -1,7 +1,7 @@
 """Names and HydroShare paths for datasets in the STREAM resource.
 
-This module is intentionally limited to metadata about the datasets.  Reading
-and filtering the Parquet files will be added separately.
+This module contains internal paths, time-column names, and measurement
+variables used by the Arrow data readers.
 """
 
 RESOURCE_ID = "4553ef8a14884e4199c7018975b8faaa"

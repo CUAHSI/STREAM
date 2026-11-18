@@ -2,9 +2,9 @@
 
 Arrow-first Python access to the analysis-ready STREAM Parquet dataset on
 HydroShare. Import the package as `stream`: `import streamwq as stream`.
-Site discovery, metadata, and water-quality/streamflow access use the
-module-level Arrow API. Other observation readers and analysis modules are
-still being migrated and retain their existing pandas-based interfaces.
+Site discovery, metadata, and supported tabular dataset access use the
+module-level Arrow API. Other analysis modules retain their existing
+pandas-based interfaces.
 
 - [STREAM Parquet resource](https://www.hydroshare.org/resource/4553ef8a14884e4199c7018975b8faaa/)
 - [STREAM dataset documentation](https://www.hydroshare.org/resource/0ca12d1860894579bb11eacf408a8830/)
@@ -135,39 +135,54 @@ date range, or quality-filter request. Invalid selections raise a
 descriptive `ValueError`; a valid selection matching no sites also raises a
 `ValueError` with guidance to broaden or change the selection.
 
-### Water-quality and streamflow data
+### Tabular data
 
 `get_data(dataset, site_ids=None, *, columns=None, start=None, end=None,
-quality=None)` currently supports the explicit dataset names `water_quality`
-and `streamflow`. `site_ids` is required and accepts one non-empty ID, a
-sequence, or a one-column `STREAM_ID` Arrow table such as the result from
-`get_sites`. Every ID is checked against site metadata before observations are
-read; if any are unknown, the whole request raises `ValueError` listing them.
-A known site with no matching observations returns a zero-row table retaining
-the requested schema.
+quality=None)` supports `water_quality`, `streamflow`, `static_catchment_characteristics`,
+`grab_samples`, `meteorology`, `land_cover`, and `anthropogenic`. `site_ids` is
+required and accepts one non-empty ID, a sequence, or a one-column `STREAM_ID`
+Arrow table such as the result from `get_sites`. Every ID is checked against
+site metadata before data are read; if any are unknown, the whole request
+raises `ValueError` listing them. A known site with no matching rows returns a
+zero-row table retaining the requested schema.
 
 All filters are applied during the Parquet read, before the result is
 materialized as `pyarrow.Table`. `columns` is optional: omitted means all
 columns in that dataset's Parquet schema; an explicit sequence is the exact
 output projection. Unknown columns are rejected. `catalog.VARIABLES` lists
 measurement variables, not the complete column schema. `STREAM_ID`,
-`DateTime`, quality flags, and any additional selectable columns are discovered
-from the Parquet schema, which is the authority for valid columns. Inspect
-`table.schema` on a result (including an empty result) to see the schema.
+`DateTime`, quality flags, and any additional selectable columns are
+discovered from the Parquet schema, which is the authority for valid columns.
+For schema-dependent static attributes, inspect `table.schema` to see the
+available fields. This also works for empty results.
+
+| Dataset | Available measurement columns | Filters |
+| --- | --- | --- |
+| `water_quality` | `catalog.VARIABLES["water_quality"]` | Site, inclusive `DateTime` bounds, and quality |
+| `streamflow` | `catalog.VARIABLES["streamflow"]` | Site, inclusive `DateTime` bounds, and quality |
+| `static_catchment_characteristics` | Static fields are schema-dependent; inspect the returned schema | Site only; date and quality filters are rejected |
+| `grab_samples` | `catalog.VARIABLES["grab_samples"]` | Site and inclusive `DateTime` bounds |
+| `meteorology` | `catalog.VARIABLES["meteorology"]` | Site and inclusive `DateTime` bounds |
+| `land_cover` | `catalog.VARIABLES["land_cover"]` | Site and inclusive `DateTime` bounds |
+| `anthropogenic` | `catalog.VARIABLES["anthropogenic"]` | Site and inclusive `DateTime` bounds |
 
 `start` and `end` accept ISO date/datetime strings or Python date/datetime
 values. Both boundaries are inclusive; a date-only value means midnight at
 the start of that date. Bounds must be timezone-naive and are interpreted in
 the stored timestamp's time basis. `quality` accepts flag codes (`"A"`, `"P"`,
-`"E"`) or their names (`"approved"`, `"provisional"`, `"erroneous"`). It
-filters every selected measurement by its corresponding quality flag.
-Quality-flag columns are included in output only when selected explicitly or
-when the default all-column projection is used. Quality filtering requires at
-least one measurement column in the selected projection.
+`"E"`) or their names (`"approved"`, `"provisional"`, `"erroneous"`), and is
+supported only for water quality and streamflow. It filters every selected
+measurement by its corresponding quality flag. Quality-flag columns are
+included in output only when selected explicitly or when the default
+all-column projection is used. Quality filtering requires at least one
+measurement column in the selected projection. Supplying quality for another
+dataset, or date bounds for static attributes, raises `ValueError` rather than
+ignoring the filter.
 
-The runnable [data-access example](examples/data_access.py) demonstrates both
-datasets and passes the discovery table directly to `get_data`. Discovery
-selects candidate sites; it does not guarantee observations in either dataset.
+`metadata` and `watersheds` are not observation datasets: use `get_metadata`
+for site metadata and the dedicated watershed reader for geometry. The
+runnable [data-access example](examples/data_access.py) demonstrates water
+quality, streamflow, and grab samples through `get_data`.
 
 ### Public catalog
 
@@ -177,20 +192,20 @@ tuple of its enumerated measurement variables. The named constants such as
 `WATER_QUALITY_VARIABLES` remain available. An empty tuple for `metadata`,
 `static_catchment_characteristics`, `watersheds`, or `huc_lookup` means there
 is no enumerated measurement-variable list; it does not mean no columns exist.
-Inspect the returned table's schema for metadata fields. Storage paths,
-resource identifiers, and connection configuration are private implementation
-details, not public catalog entries. Catalog names describe supported datasets;
-`get_data` currently reads water quality and streamflow; the other catalog
-datasets are being added in later migration steps.
+For static attributes and any non-measurement columns, use the result schema
+as the authoritative column list. Storage paths, resource identifiers, and
+connection configuration are private implementation details, not public
+catalog entries. `metadata`, `watersheds`, and `huc_lookup` remain outside
+`get_data`; they have dedicated metadata, geometry, or discovery functions.
 
 ### Migration status
 
 This is a breaking package rename, not a compatibility release. Existing
 observation tutorials now import `streamwq` mechanically but still demonstrate
 the legacy `streamwq.client.StreamClient` and pandas helpers. They require
-the full Pixi environment. Module-level site discovery, metadata, and
-water-quality/streamflow access do not require creating a client, and no
-advanced configurable client is introduced by this migration.
+the full Pixi environment. Module-level site discovery, metadata, and tabular
+data access do not require creating a client, and no advanced configurable
+client is introduced by this migration.
 
 ## Repository layout
 
