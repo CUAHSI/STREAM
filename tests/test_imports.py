@@ -48,6 +48,7 @@ class CoreImportTests(unittest.TestCase):
             from pathlib import Path
             from unittest.mock import patch
             import json
+            import struct
             import pyarrow as pa
             import pyarrow.fs as fs
             import pyarrow.parquet as pq
@@ -57,22 +58,26 @@ class CoreImportTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 path = Path(directory) / dataset_path("metadata")
                 path.parent.mkdir(parents=True)
-                pq.write_table(pa.table({"STREAM_ID": ["STREAM-gauge-1"]}), path)
+                metadata = pa.table({
+                    "STREAM_ID": ["STREAM-gauge-1", "STREAM-gauge-2"],
+                    "state_name": ["Virginia", "Virginia"],
+                })
+                pq.write_table(metadata, path)
                 watershed_path = Path(directory) / dataset_path("watersheds")
                 watershed_path.parent.mkdir(parents=True, exist_ok=True)
                 watershed_table = pa.table({
                     "STREAM_ID": ["STREAM-gauge-1"],
                     "COMID": [101],
                     "area_km2": [1.5],
-                    "geometry": [b"wkb"],
+                    "geometry": [struct.pack("<BIdd", 1, 1, 1000, 2000)],
                 }).replace_schema_metadata({
                     b"geo": json.dumps({
                         "version": "1.1.0",
                         "primary_column": "geometry",
                         "columns": {"geometry": {
                             "encoding": "WKB",
-                            "geometry_types": ["Polygon"],
-                            "crs": None,
+                            "geometry_types": ["Point"],
+                            "crs": "EPSG:5070",
                         }},
                     }).encode()
                 })
@@ -82,8 +87,13 @@ class CoreImportTests(unittest.TestCase):
                     with patch.object(
                         S3HydroShare, "__init__", return_value=None
                     ) as initialize_provider:
-                        result = stream.get_metadata("STREAM-gauge-1")
-                        watersheds = stream.get_watersheds("STREAM-gauge-1")
+                        sites = stream.get_sites(states="Virginia")
+                        assert sites.column_names == ["STREAM_ID"]
+                        assert sites.column("STREAM_ID").to_pylist() == [
+                            "STREAM-gauge-1", "STREAM-gauge-2"
+                        ]
+                        result = stream.get_metadata(sites)
+                        watersheds = stream.get_watersheds(sites)
                         data_path = Path(directory) / dataset_path("streamflow")
                         data_path.mkdir(parents=True)
                         pq.write_to_dataset(
@@ -98,19 +108,37 @@ class CoreImportTests(unittest.TestCase):
                         )
                         observations = stream.get_data(
                             "streamflow",
-                            site_ids="STREAM-gauge-1",
-                            columns=["Q_m3s"],
+                            site_ids=sites,
+                            columns=["STREAM_ID", "Q_m3s"],
                         )
+                        empty = stream.get_data(
+                            "streamflow", sites, start="2021-01-01",
+                            columns=["STREAM_ID", "Q_m3s"],
+                        )
+                        assert empty.num_rows == 0
+                        assert empty.schema.equals(observations.schema, check_metadata=True)
+
+                        pq.write_table(metadata.slice(0, 1), path)
+                        assert stream.get_metadata(sites).num_rows == 1
+                        assert result.num_rows == 2
                 assert initialize_provider.call_count == 1
-                assert result.to_pylist() == [{"STREAM_ID": "STREAM-gauge-1"}]
+                assert result.equals(metadata)
                 assert watersheds.column("STREAM_ID").to_pylist() == ["STREAM-gauge-1"]
-                assert observations.column("Q_m3s").to_pylist() == [2.5]
+                assert observations.to_pylist() == [
+                    {"STREAM_ID": "STREAM-gauge-1", "Q_m3s": 2.5}
+                ]
                 try:
                     import streamwq.helpers.pandas
                 except ImportError as error:
                     assert "streamwq[pandas]" in str(error), error
                 else:
                     raise AssertionError("pandas helpers imported without pandas")
+                try:
+                    stream.helpers.to_geopandas(watersheds)
+                except RuntimeError as error:
+                    assert "streamwq[geopandas]" in str(error), error
+                else:
+                    raise AssertionError("watersheds converted without GeoPandas")
                 assert "pandas" not in sys.modules
                 assert "geopandas" not in sys.modules
         ''')

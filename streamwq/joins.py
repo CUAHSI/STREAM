@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from streamwq.temporal import common_observation_period
+from streamwq.helpers.pandas import common_observation_period
 
 
 def join_timeseries(

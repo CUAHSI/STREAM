@@ -22,7 +22,7 @@ Core access requires Arrow 25 and the HydroShare storage dependencies, not
 pandas or GeoPandas. Install `'.[pandas]'` for native Arrow `.to_pandas()`
 conversion. The old `stream_utils` import package is not provided.
 
-For notebooks and the full legacy analysis environment, use Pixi below.
+For notebooks and the full analysis environment, use Pixi below.
 
 ## Step 1. Install Pixi
 
@@ -59,8 +59,8 @@ pixi run start
 
 `pixi run start` launches JupyterLab. Open the notebooks in
 `notebooks/tutorials/` to begin. The Pixi workspace is named `streamwq`.
-Remote access prompts for HydroShare credentials on the first metadata read
-and reuses that authenticated provider for subsequent metadata and data reads
+Remote access prompts for HydroShare credentials on the first read and
+reuses the authenticated provider for metadata, data, and watershed reads
 in the process. Result tables are not cached. Importing the package and
 inspecting its catalog require no connection.
 
@@ -88,10 +88,11 @@ observations = stream.get_data(
     end="2020-12-31",
     quality="approved",
 )
+watersheds = stream.get_watersheds(site_ids)
 ```
 
 Run the complete example with `pixi run python examples/metadata_catalog.py`.
-Run both observation examples with `pixi run python examples/data_access.py`.
+Run the tabular access examples with `pixi run python examples/data_access.py`.
 
 ### Metadata selection
 
@@ -184,6 +185,19 @@ for site metadata and the dedicated watershed reader for geometry. The
 runnable [data-access example](examples/data_access.py) demonstrates water
 quality, streamflow, and grab samples through `get_data`.
 
+### Watersheds
+
+`get_watersheds(site_ids)` accepts a single ID, a sequence of IDs, or the
+one-column result of `get_sites`. Missing and empty selections raise
+`ValueError`. Unknown IDs are omitted, as with metadata, rather than rejected
+as in `get_data`. A known site can also have no watershed geometry.
+
+The Arrow table contains WKB geometry and GeoParquet metadata. Install
+`'.[geopandas]'` and call `stream.helpers.to_geopandas(watersheds)` to restore
+the geometry and coordinate reference system. See the [watershed example](
+examples/watershed_access.py) and the [pandas analysis example](
+streamwq/README.md#optional-analysis).
+
 ### Public catalog
 
 `stream.catalog.DATASETS` is a tuple of supported dataset names.
@@ -198,14 +212,19 @@ connection configuration are private implementation details, not public
 catalog entries. `metadata`, `watersheds`, and `huc_lookup` remain outside
 `get_data`; they have dedicated metadata, geometry, or discovery functions.
 
-### Migration status
+### Breaking migration
 
-This is a breaking package rename, not a compatibility release. Existing
-observation tutorials now import `streamwq` mechanically but still demonstrate
-the legacy `streamwq.client.StreamClient` and pandas helpers. They require
-the full Pixi environment. Module-level site discovery, metadata, and tabular
-data access do not require creating a client, and no advanced configurable
-client is introduced by this migration.
+Use `import streamwq as stream` and the four module-level access functions.
+The pandas-returning readers and transitional import paths are no longer
+available. Use native `table.to_pandas()` before dataframe analysis and import
+temporal helpers from `streamwq.helpers.pandas`. Use
+`stream.helpers.to_geopandas(table)` for watershed geometry.
+
+Start with the [maintained tutorials](notebooks/tutorials/) or the short
+[examples](examples/). The [workshop archive](notebooks/workshop-archive/)
+preserves historical analyses and is not expected to run with the current API.
+The [Parquet workflow](notebooks/parquet-workflow/) is a separate dataset
+production workflow, not an access tutorial.
 
 ## Repository layout
 
@@ -228,6 +247,16 @@ pixi run typecheck
 
 Tests use local Arrow/Parquet fixtures and substitute the existing HydroShare
 filesystem provider. They do not require live network access or credentials.
+
+To also check the built distribution in three fresh environments (core,
+`[pandas]`, and `[geopandas]`), install `uv` and run:
+
+```bash
+pixi run python tests/check_isolated_install.py
+```
+
+This downloads Python dependencies but uses local fixtures for data reads.
+Live HydroShare access is not part of the migration verification.
 
 ## Reproducible exports
 

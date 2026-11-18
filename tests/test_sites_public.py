@@ -92,8 +92,20 @@ class GetSitesTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "No sites matched.*Broaden"):
             stream.get_sites(states="California")
 
+    def test_selects_nearest_sites_in_distance_order(self):
+        result = stream.get_sites(center=(-79.0, 40.0), nearest=2)
+
+        self.assertEqual(result.column("STREAM_ID").to_pylist(), ["site-3", "site-2"])
+
+    def test_filters_by_streamflow_availability(self):
+        result = stream.get_sites(streamflow=True)
+
+        self.assertEqual(result.column("STREAM_ID").to_pylist(), ["site-1"])
+
     def test_rejects_invalid_spatial_arguments_before_reading_data(self):
         invalid_requests = [
+            ({"huc6": "0207"}, "HUC6 codes must contain exactly 6 digits"),
+            ({"center": (-77.0, 38.0), "nearest": 0}, "nearest must be a positive integer"),
             (
                 {"bbox": (-75.0, 36.0, -80.0, 40.0)},
                 "bbox west must be less than east",
