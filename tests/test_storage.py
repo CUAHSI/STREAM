@@ -1,5 +1,7 @@
 import unittest
+from unittest import mock
 
+from streamwq import _storage
 from streamwq._storage import (
     ANTHROPOGENIC_VARIABLES,
     DATASETS,
@@ -14,10 +16,23 @@ from streamwq._storage import (
 
 
 class DatasetPathTests(unittest.TestCase):
+    def setUp(self):
+        _storage._contents_root.cache_clear()
+        self.addCleanup(_storage._contents_root.cache_clear)
+        response = mock.Mock()
+        response.json.return_value = {
+            "bucket": "test-bucket",
+            "prefix": f"{RESOURCE_ID}/data/contents/",
+            "zone": "hydroshare",
+        }
+        patcher = mock.patch.object(_storage.requests, "get", return_value=response)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_returns_path_for_known_dataset(self):
         self.assertEqual(
             dataset_path("streamflow"),
-            f"tonycastronova/{RESOURCE_ID}/data/contents/streamflow",
+            f"test-bucket/{RESOURCE_ID}/data/contents/streamflow",
         )
 
     def test_every_dataset_uses_current_resource(self):

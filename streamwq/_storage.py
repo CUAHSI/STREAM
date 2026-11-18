@@ -4,10 +4,27 @@ This module contains internal paths, time-column names, and measurement
 variables used by the Arrow data readers.
 """
 
-RESOURCE_ID = "4553ef8a14884e4199c7018975b8faaa"
-RESOURCE_OWNER = "tonycastronova"
+import functools
 
-_CONTENTS_ROOT = f"{RESOURCE_OWNER}/{RESOURCE_ID}/data/contents"
+import requests
+
+RESOURCE_ID = "4553ef8a14884e4199c7018975b8faaa"
+
+_S3_INFO_URL = f"https://www.hydroshare.org/hsapi/resource/s3/{RESOURCE_ID}/"
+
+
+@functools.lru_cache(maxsize=1)
+def _contents_root() -> str:
+    """Ask HydroShare where the resource files live (bucket and folder).
+
+    HydroShare can move resources between buckets, so the location is looked
+    up once per session instead of being hard-coded.
+    """
+
+    response = requests.get(_S3_INFO_URL, timeout=30)
+    response.raise_for_status()
+    info = response.json()
+    return f"{info['bucket']}/{info['prefix'].strip('/')}"
 
 
 # Public names used by Python code mapped to names in the HydroShare resource.
@@ -145,4 +162,4 @@ def dataset_path(name: str) -> str:
             f"Unknown STREAM dataset {name!r}. Available datasets: {available}"
         ) from error
 
-    return f"{_CONTENTS_ROOT}/{resource_path}"
+    return f"{_contents_root()}/{resource_path}"
